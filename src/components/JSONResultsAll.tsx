@@ -137,9 +137,19 @@ export default function JSONResultsAll() {
 
   const handleViewDetails = async (result: JSONScanResult) => {
     const detailed = await loadDetailedResults(result.id);
-    if (detailed && detailed.results?.rules) {
-      setSelectedResult({ ...result, results: { ...result.results, rules: detailed.results.rules } });
+    if (detailed) {
+      // The backend returns the full analysis with rules array
+      const rules = detailed.results?.rules || detailed.rules || [];
+      console.log('Detailed analysis loaded:', { projectId: result.id, rulesCount: rules.length, rules });
+      setSelectedResult({ 
+        ...result, 
+        results: { 
+          ...result.results, 
+          rules: rules 
+        } 
+      });
     } else {
+      console.warn('No detailed analysis found for:', result.id);
       setSelectedResult(result);
     }
   };
@@ -456,15 +466,54 @@ export default function JSONResultsAll() {
                       <Calendar className="h-3 w-3" />
                       {formatDate(selectedResult.processedAt)}
                     </span>
+                    <span className="text-sm text-gray-600">
+                      Machine: {selectedResult.machine || "Unknown"}
+                    </span>
+                    <span className="text-sm text-gray-600">
+                      Operator: {selectedResult.operator || "Unknown"}
+                    </span>
                   </CardDescription>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedResult(null)}
-                >
-                  ✕
-                </Button>
+                <div className="flex items-center gap-2">
+                  {user?.role === 'admin' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        if (confirm(`Re-analyze ${selectedResult.filename}? This will reprocess the file and update all rules.`)) {
+                          try {
+                            console.log(`⏳ Re-analyzing ${selectedResult.filename}...`);
+                            const response = await fetch(`http://localhost:3005/api/projects/${selectedResult.id}/reanalyze`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' }
+                            });
+                            if (response.ok) {
+                              console.log(`✅ Re-analysis completed for ${selectedResult.filename}`);
+                              setSelectedResult(null);
+                              // Reload results immediately since backend completed the scan
+                              await loadResults();
+                            } else {
+                              alert('Failed to trigger re-analysis. Check console for details.');
+                            }
+                          } catch (error) {
+                            console.error('Re-analysis failed:', error);
+                            alert('Error triggering re-analysis.');
+                          }
+                        }
+                      }}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-1" />
+                      Re-analyze
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedResult(null)}
+                  >
+                    ✕
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="overflow-auto flex-1 p-6">
