@@ -127,7 +127,7 @@ export async function configureAllBackends(wizardConfig: {
     try {
       results.jsonScanner = await configureJSONScanner({
         testMode: wizardConfig.demoMode,
-        autoRun: wizardConfig.features?.autoScan?.enabled ?? true,
+        autoRun: false, // AutoRunProcessor handles automation, not individual backends
         scanPaths: {
           jsonFiles: wizardConfig.modules.jsonAnalyzer.dataPath || null,
         },
@@ -144,7 +144,7 @@ export async function configureAllBackends(wizardConfig: {
     try {
       results.toolManager = await configureToolManager({
         testMode: wizardConfig.demoMode,
-        autoRun: wizardConfig.features?.autoScan?.enabled ?? true,
+        autoRun: false, // AutoRunProcessor handles automation, not individual backends
         scanPaths: {
           jsonFiles: wizardConfig.modules.jsonAnalyzer.dataPath || null,
           excelFiles: wizardConfig.modules.matrixTools.features.excelProcessing

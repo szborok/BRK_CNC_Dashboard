@@ -9,6 +9,8 @@ import ScannerResults from "./components/ScannerResults";
 import JSONResultsAll from "./components/JSONResultsAll";
 import JSONManualUpload from "./components/JSONManualUpload";
 import ToolManager from "./components/ToolManager";
+import TodaysMatrixTools from "./components/TodaysMatrixTools";
+import RemainingMatrixTools from "./components/RemainingMatrixTools";
 import Settings from "./components/Settings";
 import AdminSettings from "./components/AdminSettings";
 import Sidebar from "./components/Sidebar";
@@ -606,24 +608,13 @@ function AppContent() {
           {/* JSON File Analyzer Views */}
           {currentView === "my-auto-results" && (
             <ProtectedRoute>
-              <div className="p-6">
-                <h1 className="text-2xl font-bold mb-4">My Auto Results</h1>
-                <p className="text-gray-600">
-                  This page will show your automatically processed JSON file
-                  results.
-                </p>
-              </div>
+              <JSONResultsAll userFilter={legacyUser?.name} scanTypeFilter="auto" />
             </ProtectedRoute>
           )}
 
           {currentView === "my-manual-results" && (
             <ProtectedRoute>
-              <div className="p-6">
-                <h1 className="text-2xl font-bold mb-4">My Manual Results</h1>
-                <p className="text-gray-600">
-                  This page will show your manually processed JSON file results.
-                </p>
-              </div>
+              <JSONResultsAll userFilter={legacyUser?.name} scanTypeFilter="manual" />
             </ProtectedRoute>
           )}
 
@@ -636,6 +627,12 @@ function AppContent() {
           )}
 
           {/* Matrix Tools Manager Views */}
+          {currentView === "tool-details" && (
+            <ProtectedRoute>
+              <TodaysMatrixTools />
+            </ProtectedRoute>
+          )}
+
           {currentView === "available-tools" && (
             <ProtectedRoute>
               <ToolManager currentUser={legacyUser} view="available" />
@@ -644,7 +641,7 @@ function AppContent() {
 
           {currentView === "remaining-tools" && (
             <ProtectedRoute>
-              <ToolManager currentUser={legacyUser} view="remaining" />
+              <RemainingMatrixTools />
             </ProtectedRoute>
           )}
 

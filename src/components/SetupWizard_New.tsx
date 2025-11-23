@@ -843,7 +843,7 @@ function ModulesStep({
             ...config.modules.platesManager,
             modelsPath: "../BRK_CNC_CORE/test-data/source_data/clamping_plates/models",
             plateInfoFile:
-              "../BRK_CNC_CORE/test-data/source_data/clamping_plates/Készülékek.xlsx",
+              "../BRK_CNC_CORE/test-data/source_data/clamping_plates/info/Készülékek.xlsx",
           },
         },
       });
@@ -3143,7 +3143,7 @@ function ValidationStep({
           testMode: config.demoMode,
           workingFolder: config.storage.basePath || null,
           scanPaths: { jsonFiles: config.modules.jsonAnalyzer.dataPath || null },
-          autoRun: true
+          autoRun: false
         }
       });
     }
@@ -3161,7 +3161,7 @@ function ValidationStep({
               ? config.modules.matrixTools.paths.excelInputPath || null
               : null
           },
-          autoRun: true
+          autoRun: false
         }
       });
     }
@@ -3174,7 +3174,8 @@ function ValidationStep({
           testMode: config.demoMode,
           workingFolder: config.storage.basePath || null,
           platesPath: config.modules.platesManager.modelsPath || null,
-          autoRun: true
+          plateInfoFile: config.modules.platesManager.plateInfoFile || null,
+          autoRun: true  // ClampingPlate needs this to trigger initialization during setup
         }
       });
     }

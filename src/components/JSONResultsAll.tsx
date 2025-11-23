@@ -66,15 +66,20 @@ interface JSONScanResult {
   status: "passed" | "failed" | "warning";
 }
 
-export default function JSONResultsAll() {
+interface JSONResultsAllProps {
+  userFilter?: string;
+  scanTypeFilter?: "auto" | "manual";
+}
+
+export default function JSONResultsAll({ userFilter, scanTypeFilter: initialScanTypeFilter }: JSONResultsAllProps = {}) {
   const { user } = useAuth();
   const [results, setResults] = useState<JSONScanResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [scanTypeFilter, setScanTypeFilter] = useState<"all" | "auto" | "manual">("all");
+  const [scanTypeFilter, setScanTypeFilter] = useState<"all" | "auto" | "manual">(initialScanTypeFilter || "all");
   const [statusFilter, setStatusFilter] = useState<"all" | "passed" | "failed" | "warning">("all");
   const [machineFilter, setMachineFilter] = useState<string>("all");
-  const [programmerFilter, setProgrammerFilter] = useState<string>("all");
+  const [programmerFilter, setProgrammerFilter] = useState<string>(userFilter || "all");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [selectedResult, setSelectedResult] = useState<JSONScanResult | null>(
@@ -309,17 +314,19 @@ export default function JSONResultsAll() {
             ))}
           </select>
 
-          {/* Programmer Filter */}
-          <select
-            value={programmerFilter}
-            onChange={(e) => setProgrammerFilter(e.target.value)}
-            className="px-3 py-2 border rounded-md text-sm"
-          >
-            <option value="all">All Programmers</option>
-            {uniqueProgrammers.map((programmer: string) => (
-              <option key={programmer} value={programmer}>{programmer}</option>
-            ))}
-          </select>
+          {/* Programmer Filter - only show if not filtering by specific user */}
+          {!userFilter && (
+            <select
+              value={programmerFilter}
+              onChange={(e) => setProgrammerFilter(e.target.value)}
+              className="px-3 py-2 border rounded-md text-sm"
+            >
+              <option value="all">All Programmers</option>
+              {uniqueProgrammers.map((programmer: string) => (
+                <option key={programmer} value={programmer}>{programmer}</option>
+              ))}
+            </select>
+          )}
 
           {/* Date From */}
           <Input
@@ -361,8 +368,11 @@ export default function JSONResultsAll() {
       {/* Results Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Analysis Results</CardTitle>
+          <CardTitle>
+            {userFilter ? `My ${initialScanTypeFilter === 'auto' ? 'Auto' : 'Manual'} Results` : 'Analysis Results'}
+          </CardTitle>
           <CardDescription>
+            {userFilter && `Showing results for ${userFilter} • `}
             {filteredResults.length} result
             {filteredResults.length !== 1 ? "s" : ""} found
           </CardDescription>
