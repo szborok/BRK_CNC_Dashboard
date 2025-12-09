@@ -11,6 +11,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
 import { Badge } from "./ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import {
   Settings,
   Play,
@@ -29,8 +30,19 @@ import {
   RotateCcw,
   Upload,
   Download,
+  ShieldCheck,
+  Plus,
+  X,
+  Trash2,
 } from "lucide-react";
 import { useSetupConfig } from "../hooks/useSetupConfig";
+import { useCompanyConfig } from "../hooks/useCompanyConfig";
+import { listBackups, deleteBackups } from "../services/companyConfigService";
+import { toast } from "sonner";
+import MachineEditor from "./admin/MachineEditor";
+import CycleEditor from "./admin/CycleEditor";
+import ToolCategoryEditor from "./admin/ToolCategoryEditor";
+import RuleEditor from "./admin/RuleEditor";
 
 interface AdminSettingsProps {
   theme: "auto" | "light" | "dark";
@@ -55,7 +67,33 @@ export default function AdminSettings({
   onFontSizeChange: _onFontSizeChange,
   onHighContrastChange: _onHighContrastChange,
 }: AdminSettingsProps) {
-  const { config: setupConfig, saveConfig, resetConfig } = useSetupConfig();
+  console.log("🔧 AdminSettings: Component rendering started");
+  
+  let hookResult;
+  try {
+    hookResult = useSetupConfig();
+    console.log("✅ AdminSettings: useSetupConfig hook executed", hookResult);
+  } catch (error) {
+    console.error("❌ AdminSettings: useSetupConfig hook failed", error);
+    return (
+      <div className="p-8">
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="text-red-800">Configuration Error</CardTitle>
+            <CardDescription className="text-red-600">
+              Failed to load configuration: {String(error)}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+  
+  const { config: setupConfig, saveConfig, resetConfig, isLoading } = hookResult;
+  
+  // Load company config
+  const companyConfig = useCompanyConfig();
+  
   const [localConfig, setLocalConfig] = useState(setupConfig);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -71,10 +109,32 @@ export default function AdminSettings({
       toolManager: true,
       clampingPlateManager: true,
     });
+  const [backups, setBackups] = useState<Array<{
+    filename: string;
+    timestamp: string;
+    size: number;
+    path: string;
+  }>>([]);
+  const [loadingBackups, setLoadingBackups] = useState(true);
+  const [selectedBackups, setSelectedBackups] = useState<Set<string>>(new Set());
+  const [deletingBackups, setDeletingBackups] = useState(false);
 
   useEffect(() => {
-    setLocalConfig(setupConfig);
-  }, [setupConfig]);
+    console.log("🔧 AdminSettings: setupConfig changed", { setupConfig, isLoading });
+    if (setupConfig && !isLoading) {
+      console.log("✅ AdminSettings: Setting localConfig", setupConfig);
+      setLocalConfig(setupConfig);
+    }
+  }, [setupConfig, isLoading]);
+
+  useEffect(() => {
+    console.log("🔧 AdminSettings: Component mounted/updated", { 
+      isLoading, 
+      hasLocalConfig: !!localConfig,
+      hasModules: !!localConfig?.modules,
+      hasCompanyFeatures: !!localConfig?.companyFeatures
+    });
+  }, [isLoading, localConfig]);
 
   useEffect(() => {
     // Load processing states from localStorage
@@ -83,6 +143,95 @@ export default function AdminSettings({
       setProcessingStates(JSON.parse(savedStates));
     }
   }, []);
+
+  const fetchBackups = async () => {
+    try {
+      setLoadingBackups(true);
+      const backupList = await listBackups();
+      setBackups(backupList);
+    } catch (error) {
+      console.error("Failed to load backups:", error);
+    } finally {
+      setLoadingBackups(false);
+    }
+  };
+
+  useEffect(() => {
+    // Fetch backups on mount
+    fetchBackups();
+  }, []);
+
+  useEffect(() => {
+    // Listen for backup refresh events
+    const handleBackupRefresh = () => {
+      fetchBackups();
+    };
+    window.addEventListener('backupCreated', handleBackupRefresh);
+    return () => window.removeEventListener('backupCreated', handleBackupRefresh);
+  }, []);
+
+  const handleDeleteBackup = async (filename: string) => {
+    if (!confirm('Are you sure you want to delete this backup? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      setDeletingBackups(true);
+      await deleteBackups([filename]);
+      toast.success('Backup deleted successfully');
+      await fetchBackups();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete backup');
+    } finally {
+      setDeletingBackups(false);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedBackups.size === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${selectedBackups.size} backup(s)? This action cannot be undone.`)) {
+      return;
+    }
+    
+    try {
+      setDeletingBackups(true);
+      await deleteBackups(Array.from(selectedBackups));
+      toast.success(`${selectedBackups.size} backup(s) deleted successfully`);
+      setSelectedBackups(new Set());
+      await fetchBackups();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete backups');
+    } finally {
+      setDeletingBackups(false);
+    }
+  };
+
+  const handleDownloadSelected = () => {
+    if (selectedBackups.size === 0) return;
+    
+    selectedBackups.forEach(filename => {
+      window.open(`http://localhost:3004/api/company-config/backups/${filename}`, '_blank');
+    });
+  };
+
+  const toggleBackupSelection = (filename: string) => {
+    const newSelection = new Set(selectedBackups);
+    if (newSelection.has(filename)) {
+      newSelection.delete(filename);
+    } else {
+      newSelection.add(filename);
+    }
+    setSelectedBackups(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedBackups.size === backups.length) {
+      setSelectedBackups(new Set());
+    } else {
+      setSelectedBackups(new Set(backups.map(b => b.filename)));
+    }
+  };
 
   const updateLocalConfig = (updates: any) => {
     const newConfig = { ...localConfig, ...updates };
@@ -143,10 +292,10 @@ export default function AdminSettings({
           updateLocalConfig({
             modules: {
               ...localConfig.modules,
-              matrixTools: {
-                ...localConfig.modules.matrixTools,
+              toolManager: {
+                ...localConfig.modules.toolManager,
                 paths: {
-                  ...localConfig.modules.matrixTools.paths,
+                  ...(localConfig.modules.toolManager.paths || {}),
                   excelInputPath: folderPath,
                 },
               },
@@ -158,16 +307,42 @@ export default function AdminSettings({
     input.click();
   };
 
+  if (isLoading || !localConfig || !localConfig.modules || !localConfig.companyFeatures || 
+      !localConfig.modules.jsonScanner || !localConfig.modules.jsonAnalyzer || 
+      !localConfig.modules.toolManager || !localConfig.modules.clampingPlateManager) {
+    console.log("⏳ AdminSettings: Showing loading screen", {
+      isLoading,
+      hasLocalConfig: !!localConfig,
+      hasModules: !!localConfig?.modules,
+      hasCompanyFeatures: !!localConfig?.companyFeatures,
+      hasJsonScanner: !!localConfig?.modules?.jsonScanner,
+      hasJsonAnalyzer: !!localConfig?.modules?.jsonAnalyzer,
+      hasToolManager: !!localConfig?.modules?.toolManager,
+      hasClampingPlateManager: !!localConfig?.modules?.clampingPlateManager
+    });
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-2">
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto text-gray-400" />
+          <p className="text-sm text-muted-foreground">Loading configuration...</p>
+        </div>
+      </div>
+    );
+  }
+
+  console.log("✅ AdminSettings: Rendering main content");
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Admin Settings</h1>
-        <p className="text-muted-foreground">
-          Manage system configuration, auto-processing controls, and application
-          preferences
-        </p>
-      </div>
+      <Tabs defaultValue="system-control" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="system-control">System Control</TabsTrigger>
+          <TabsTrigger value="company-setup">Company Setup</TabsTrigger>
+          <TabsTrigger value="rules">Rule Management</TabsTrigger>
+          <TabsTrigger value="reset">Reset & Backup</TabsTrigger>
+        </TabsList>
 
+        <TabsContent value="system-control" className="space-y-6 mt-6">
       {/* Auto-Processing Controls */}
       <Card>
         <CardHeader>
@@ -189,7 +364,7 @@ export default function AdminSettings({
                 <div>
                   <h4 className="font-medium">JSON Scanner</h4>
                   <p className="text-sm text-muted-foreground">
-                    {localConfig.modules.jsonAnalyzer.mode === "auto"
+                    {localConfig.modules.jsonAnalyzer.autoMode
                       ? "Automatically processes JSON files from configured path"
                       : "Manual processing mode - no auto-processing"}
                   </p>
@@ -203,7 +378,7 @@ export default function AdminSettings({
                 >
                   {processingStates.jsonScanner ? "Running" : "Stopped"}
                 </Badge>
-                {localConfig.modules.jsonAnalyzer.mode === "auto" && (
+                {localConfig.modules.jsonAnalyzer.autoMode && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -235,7 +410,7 @@ export default function AdminSettings({
                 <div>
                   <h4 className="font-medium">Tool Manager</h4>
                   <p className="text-sm text-muted-foreground">
-                    {localConfig.modules.matrixTools.mode === "auto"
+                    {localConfig.modules.toolManager.autoMode
                       ? "Automatically processes Excel files and tool inventory"
                       : "Manual processing mode - no auto-processing"}
                   </p>
@@ -249,7 +424,7 @@ export default function AdminSettings({
                 >
                   {processingStates.toolManager ? "Running" : "Stopped"}
                 </Badge>
-                {localConfig.modules.matrixTools.mode === "auto" && (
+                {localConfig.modules.toolManager.autoMode && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -355,20 +530,34 @@ export default function AdminSettings({
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">--</div>
-              <div className="text-sm text-muted-foreground">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg border">
+            <div className="text-center p-4">
+              <div className="text-3xl font-bold text-blue-600 mb-1">
+                {(() => {
+                  const jsonResults = JSON.parse(localStorage.getItem('jsonScannerResults') || '{"projects":[]}');
+                  const toolResults = JSON.parse(localStorage.getItem('toolManagerResults') || '{"tools":[]}');
+                  const plateResults = JSON.parse(localStorage.getItem('clampingPlateResults') || '{"plates":[]}');
+                  return (jsonResults.projects?.length || 0) + (toolResults.tools?.length || 0) + (plateResults.plates?.length || 0);
+                })()}
+              </div>
+              <div className="text-sm font-medium text-muted-foreground">
                 Files Processed
               </div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">--</div>
-              <div className="text-sm text-muted-foreground">Successful</div>
+            <div className="text-center p-4">
+              <div className="text-3xl font-bold text-green-600 mb-1">
+                {(() => {
+                  const jsonResults = JSON.parse(localStorage.getItem('jsonScannerResults') || '{"projects":[]}');
+                  const toolResults = JSON.parse(localStorage.getItem('toolManagerResults') || '{"tools":[]}');
+                  const plateResults = JSON.parse(localStorage.getItem('clampingPlateResults') || '{"plates":[]}');
+                  return (jsonResults.projects?.length || 0) + (toolResults.tools?.length || 0) + (plateResults.plates?.length || 0);
+                })()}
+              </div>
+              <div className="text-sm font-medium text-muted-foreground">Successful</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">--</div>
-              <div className="text-sm text-muted-foreground">Errors</div>
+            <div className="text-center p-4">
+              <div className="text-3xl font-bold text-red-600 mb-1">0</div>
+              <div className="text-sm font-medium text-muted-foreground">Errors</div>
             </div>
           </div>
         </CardContent>
@@ -433,7 +622,7 @@ export default function AdminSettings({
                     JSON Scanner
                   </h5>
                   <Switch
-                    checked={localConfig.modules.jsonAnalyzer.mode === "auto"}
+                    checked={localConfig.modules.jsonAnalyzer.autoMode === true}
                     onCheckedChange={(checked) =>
                       updateLocalConfig({
                         modules: {
@@ -486,13 +675,13 @@ export default function AdminSettings({
                     Tool Manager
                   </h5>
                   <Switch
-                    checked={localConfig.modules.matrixTools.mode === "auto"}
+                    checked={localConfig.modules.toolManager.autoMode === true}
                     onCheckedChange={(checked) =>
                       updateLocalConfig({
                         modules: {
                           ...localConfig.modules,
-                          matrixTools: {
-                            ...localConfig.modules.matrixTools,
+                          toolManager: {
+                            ...localConfig.modules.toolManager,
                             mode: checked ? "auto" : "manual",
                           },
                         },
@@ -506,16 +695,16 @@ export default function AdminSettings({
                     <Input
                       id="excel-path"
                       value={
-                        localConfig.modules.matrixTools.paths.excelInputPath
+                        localConfig.modules.toolManager.paths?.excelInputPath || ""
                       }
                       onChange={(e) =>
                         updateLocalConfig({
                           modules: {
                             ...localConfig.modules,
-                            matrixTools: {
-                              ...localConfig.modules.matrixTools,
+                            toolManager: {
+                              ...localConfig.modules.toolManager,
                               paths: {
-                                ...localConfig.modules.matrixTools.paths,
+                                ...(localConfig.modules.toolManager.paths || {}),
                                 excelInputPath: e.target.value,
                               },
                             },
@@ -545,16 +734,16 @@ export default function AdminSettings({
                       <Input
                         id="json-input-path"
                         value={
-                          localConfig.modules.matrixTools.paths.jsonInputPath
+                          localConfig.modules.toolManager.paths?.jsonInputPath || ""
                         }
                         onChange={(e) =>
                           updateLocalConfig({
                             modules: {
                               ...localConfig.modules,
-                              matrixTools: {
-                                ...localConfig.modules.matrixTools,
+                              toolManager: {
+                                ...localConfig.modules.toolManager,
                                 paths: {
-                                  ...localConfig.modules.matrixTools.paths,
+                                  ...(localConfig.modules.toolManager.paths || {}),
                                   jsonInputPath: e.target.value,
                                 },
                               },
@@ -578,13 +767,13 @@ export default function AdminSettings({
                     <div className="flex gap-2">
                       <Input
                         id="inventory-file"
-                        value={localConfig.modules.matrixTools.inventoryFile}
+                        value={localConfig.modules.toolManager.inventoryFile}
                         onChange={(e) =>
                           updateLocalConfig({
                             modules: {
                               ...localConfig.modules,
-                              matrixTools: {
-                                ...localConfig.modules.matrixTools,
+                              toolManager: {
+                                ...localConfig.modules.toolManager,
                                 inventoryFile: e.target.value,
                               },
                             },
@@ -608,17 +797,16 @@ export default function AdminSettings({
                       <span className="text-sm">Excel Processing</span>
                       <Switch
                         checked={
-                          localConfig.modules.matrixTools.features
-                            .excelProcessing
+                          localConfig.modules.toolManager.features?.excelProcessing || false
                         }
                         onCheckedChange={(checked) =>
                           updateLocalConfig({
                             modules: {
                               ...localConfig.modules,
-                              matrixTools: {
-                                ...localConfig.modules.matrixTools,
+                              toolManager: {
+                                ...localConfig.modules.toolManager,
                                 features: {
-                                  ...localConfig.modules.matrixTools.features,
+                                  ...(localConfig.modules.toolManager.features || {}),
                                   excelProcessing: checked,
                                 },
                               },
@@ -631,16 +819,16 @@ export default function AdminSettings({
                       <span className="text-sm">JSON Scanning</span>
                       <Switch
                         checked={
-                          localConfig.modules.matrixTools.features.jsonScanning
+                          localConfig.modules.toolManager.features?.jsonScanning || false
                         }
                         onCheckedChange={(checked) =>
                           updateLocalConfig({
                             modules: {
                               ...localConfig.modules,
-                              matrixTools: {
-                                ...localConfig.modules.matrixTools,
+                              toolManager: {
+                                ...localConfig.modules.toolManager,
                                 features: {
-                                  ...localConfig.modules.matrixTools.features,
+                                  ...(localConfig.modules.toolManager.features || {}),
                                   jsonScanning: checked,
                                 },
                               },
@@ -663,13 +851,13 @@ export default function AdminSettings({
                     Clamping Plates Manager
                   </h5>
                   <Switch
-                    checked={localConfig.modules.platesManager.mode === "auto"}
+                    checked={localConfig.modules.clampingPlateManager.autoMode === true}
                     onCheckedChange={(checked) =>
                       updateLocalConfig({
                         modules: {
                           ...localConfig.modules,
-                          platesManager: {
-                            ...localConfig.modules.platesManager,
+                          clampingPlateManager: {
+                            ...localConfig.modules.clampingPlateManager,
                             mode: checked ? "auto" : "manual",
                           },
                         },
@@ -682,13 +870,13 @@ export default function AdminSettings({
                   <div className="flex gap-2">
                     <Input
                       id="plates-models-path"
-                      value={localConfig.modules.platesManager.modelsPath || ""}
+                      value={localConfig.modules.clampingPlateManager.modelsPath || ""}
                       onChange={(e) =>
                         updateLocalConfig({
                           modules: {
                             ...localConfig.modules,
-                            platesManager: {
-                              ...localConfig.modules.platesManager,
+                            clampingPlateManager: {
+                              ...localConfig.modules.clampingPlateManager,
                               modelsPath: e.target.value,
                             },
                           },
@@ -699,7 +887,7 @@ export default function AdminSettings({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleFileSelect("platesManagerPath")}
+                      onClick={() => handleFileSelect("clampingPlateManagerPath")}
                     >
                       <FolderOpen className="h-4 w-4" />
                     </Button>
@@ -710,13 +898,13 @@ export default function AdminSettings({
                   <div className="flex gap-2">
                     <Input
                       id="plates-info-file"
-                      value={localConfig.modules.platesManager.plateInfoFile || ""}
+                      value={localConfig.modules.clampingPlateManager.plateInfoFile || ""}
                       onChange={(e) =>
                         updateLocalConfig({
                           modules: {
                             ...localConfig.modules,
-                            platesManager: {
-                              ...localConfig.modules.platesManager,
+                            clampingPlateManager: {
+                              ...localConfig.modules.clampingPlateManager,
                               plateInfoFile: e.target.value,
                             },
                           },
@@ -1107,123 +1295,347 @@ export default function AdminSettings({
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
 
-      {/* Setup Wizard Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Setup Wizard Management
-          </CardTitle>
-          <CardDescription>
-            Manage setup wizard configuration and reconfigure your dashboard
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Export Current Configuration */}
-            <div className="p-4 border rounded-lg">
-              <div className="flex items-start gap-3">
-                <Download className="h-5 w-5 text-blue-600 mt-0.5" />
-                <div className="flex-1">
-                  <h4 className="font-medium">Export Configuration</h4>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Download your current setup as a backup file
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const configBlob = new Blob(
-                        [JSON.stringify(localConfig, null, 2)],
-                        {
-                          type: "application/json",
-                        }
+        <TabsContent value="company-setup" className="space-y-6 mt-6">
+          {companyConfig.isLoading ? (
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="text-center space-y-2">
+                <RefreshCw className="h-8 w-8 animate-spin mx-auto text-gray-400" />
+                <p className="text-sm text-muted-foreground">Loading company configuration...</p>
+              </div>
+            </div>
+          ) : companyConfig.error ? (
+            <Card className="border-red-200 bg-red-50">
+              <CardHeader>
+                <CardTitle className="text-red-800">Configuration Error</CardTitle>
+                <CardDescription className="text-red-600">
+                  {companyConfig.error}
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          ) : companyConfig.config ? (
+            <>
+              <MachineEditor 
+                machines={companyConfig.config.machines}
+                onUpdate={companyConfig.updateMachine}
+                onAdd={companyConfig.addMachine}
+                onDelete={companyConfig.deleteMachine}
+              />
+              
+              <CycleEditor 
+                cycles={companyConfig.config.cycles}
+                onUpdate={companyConfig.updateCycle}
+              />
+              
+              <ToolCategoryEditor 
+                toolCategories={companyConfig.config.toolCategories}
+                onUpdate={companyConfig.updateToolCategory}
+              />
+            </>
+          ) : null}
+        </TabsContent>
+
+        <TabsContent value="rules" className="space-y-6 mt-6">
+          {companyConfig.isLoading ? (
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="text-center space-y-2">
+                <RefreshCw className="h-8 w-8 animate-spin mx-auto text-gray-400" />
+                <p className="text-sm text-muted-foreground">Loading rules...</p>
+              </div>
+            </div>
+          ) : companyConfig.config ? (
+            <RuleEditor 
+              rules={companyConfig.config.validationRules}
+              machines={companyConfig.config.machines}
+              cycles={companyConfig.config.cycles}
+              toolCategories={companyConfig.config.toolCategories}
+              onUpdate={companyConfig.updateRule}
+              onAdd={companyConfig.addRule}
+              onDelete={companyConfig.deleteRule}
+            />
+          ) : null}
+        </TabsContent>
+
+        <TabsContent value="reset" className="space-y-6 mt-6">
+          {/* Backup Management Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Archive className="h-5 w-5" />
+                Backup Management
+              </CardTitle>
+              <CardDescription>
+                Automatic backups are created before each company config change. Manage and restore backups here.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Backup History */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Recent Backups</h4>
+                  {backups.length > 0 && (
+                    <div className="flex gap-2">
+                      {selectedBackups.size > 0 && (
+                        <>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={handleDownloadSelected}
+                            disabled={deletingBackups}
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            Download ({selectedBackups.size})
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="border-red-600 text-red-600 hover:bg-red-50"
+                            onClick={handleDeleteSelected}
+                            disabled={deletingBackups}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Delete ({selectedBackups.size})
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {loadingBackups ? (
+                  <div className="border rounded-lg p-4 text-center text-muted-foreground">
+                    Loading backups...
+                  </div>
+                ) : backups.length === 0 ? (
+                  <div className="border rounded-lg p-4 text-center text-muted-foreground">
+                    No backups found. Backups are created automatically when you make changes.
+                  </div>
+                ) : (
+                  <div className="border rounded-lg divide-y">
+                    {/* Select All Row */}
+                    <div className="flex items-center gap-3 p-3 bg-muted/30">
+                      <input 
+                        type="checkbox"
+                        checked={selectedBackups.size === backups.length}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 rounded border-gray-300"
+                      />
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Select All ({backups.length} backups)
+                      </span>
+                    </div>
+                    
+                    {backups.map((backup) => {
+                      const date = new Date(backup.timestamp);
+                      const now = new Date();
+                      const diffMs = now.getTime() - date.getTime();
+                      const diffMins = Math.floor(diffMs / 60000);
+                      const diffHours = Math.floor(diffMs / 3600000);
+                      const diffDays = Math.floor(diffMs / 86400000);
+                      
+                      let timeAgo = '';
+                      if (diffMins < 1) timeAgo = 'Just now';
+                      else if (diffMins < 60) timeAgo = `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+                      else if (diffHours < 24) timeAgo = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+                      else timeAgo = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+                      
+                      const sizeKB = (backup.size / 1024).toFixed(1);
+                      const isSelected = selectedBackups.has(backup.filename);
+                      
+                      return (
+                        <div key={backup.filename} className={`flex items-center justify-between p-3 hover:bg-muted/50 ${isSelected ? 'bg-blue-50' : ''}`}>
+                          <div className="flex items-center gap-3">
+                            <input 
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleBackupSelection(backup.filename)}
+                              className="h-4 w-4 rounded border-gray-300"
+                            />
+                            <FileJson className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm font-medium">{backup.filename}</p>
+                              <p className="text-xs text-muted-foreground">{timeAgo} • {sizeKB} KB</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="border-green-600 text-green-600 hover:bg-green-50"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to restore this backup? This will replace your current configuration.')) {
+                                  console.log('Restoring backup:', backup.filename);
+                                }
+                              }}
+                              disabled={deletingBackups}
+                            >
+                              <Upload className="h-4 w-4 mr-1" />
+                              Restore
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                window.open(`http://localhost:3004/api/company-config/backups/${backup.filename}`, '_blank');
+                              }}
+                              disabled={deletingBackups}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              Download
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="border-red-600 text-red-600 hover:bg-red-50"
+                              onClick={() => handleDeleteBackup(backup.filename)}
+                              disabled={deletingBackups}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
                       );
-                      const url = URL.createObjectURL(configBlob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = `cnc-dashboard-config-${
-                        new Date().toISOString().split("T")[0]
-                      }.json`;
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
-                      URL.revokeObjectURL(url);
-                    }}
-                    className="w-full"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export Config
-                  </Button>
-                </div>
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
 
-            {/* Import Configuration */}
-            <div className="p-4 border rounded-lg">
-              <div className="flex items-start gap-3">
-                <Upload className="h-5 w-5 text-green-600 mt-0.5" />
-                <div className="flex-1">
-                  <h4 className="font-medium">Import Configuration</h4>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Load configuration from a backup file
+              {/* Manual Backup */}
+              <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50">
+                <div>
+                  <h4 className="font-medium text-blue-900">Create Manual Backup</h4>
+                  <p className="text-sm text-blue-700 mt-1">
+                    Export company config and clamping plate data as a timestamped backup
                   </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const input = document.createElement("input");
-                      input.type = "file";
-                      input.accept = ".json";
-                      input.onchange = async (e) => {
-                        const file = (e.target as HTMLInputElement).files?.[0];
-                        if (file) {
-                          try {
-                            const text = await file.text();
-                            const importedConfig = JSON.parse(text);
-                            updateLocalConfig(importedConfig);
-                            setSaveStatus("success");
-                            setTimeout(() => setSaveStatus("idle"), 3000);
-                          } catch (error) {
-                            console.error(
-                              "Failed to import configuration:",
-                              error
-                            );
-                            setSaveStatus("error");
-                            setTimeout(() => setSaveStatus("idle"), 3000);
-                          }
-                        }
-                      };
-                      input.click();
-                    }}
-                    className="w-full"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Import Config
-                  </Button>
+                </div>
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Download className="h-4 w-4 mr-2" />
+                  Create Backup
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Setup Wizard Configuration Import/Export */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Setup Wizard Configuration
+              </CardTitle>
+              <CardDescription>
+                Export or import your complete setup wizard configuration
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Export Configuration */}
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Download className="h-5 w-5 text-blue-600 mt-0.5" />
+                    <div className="flex-1">
+                      <h4 className="font-medium">Export Configuration</h4>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Download your current setup as a backup file
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const configBlob = new Blob(
+                            [JSON.stringify(localConfig, null, 2)],
+                            {
+                              type: "application/json",
+                            }
+                          );
+                          const url = URL.createObjectURL(configBlob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = `cnc-dashboard-config-${
+                            new Date().toISOString().split("T")[0]
+                          }.json`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="w-full"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Export Config
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Import Configuration */}
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Upload className="h-5 w-5 text-green-600 mt-0.5" />
+                    <div className="flex-1">
+                      <h4 className="font-medium">Import Configuration</h4>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Load configuration from a backup file
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const input = document.createElement("input");
+                          input.type = "file";
+                          input.accept = ".json";
+                          input.onchange = async (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0];
+                            if (file) {
+                              try {
+                                const text = await file.text();
+                                const importedConfig = JSON.parse(text);
+                                updateLocalConfig(importedConfig);
+                                setSaveStatus("success");
+                                setTimeout(() => setSaveStatus("idle"), 3000);
+                              } catch (error) {
+                                console.error(
+                                  "Failed to import configuration:",
+                                  error
+                                );
+                                setSaveStatus("error");
+                                setTimeout(() => setSaveStatus("idle"), 3000);
+                              }
+                            }
+                          };
+                          input.click();
+                        }}
+                        className="w-full"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Import Config
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Reset and Reconfigure */}
-          <div className="border-t pt-4 space-y-4">
-            <div className="flex items-center justify-between p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-              <div className="flex items-center gap-3">
-                <RotateCcw className="h-5 w-5 text-yellow-600" />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-5 bg-yellow-50 border-2 border-yellow-300 rounded-lg shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-yellow-100 rounded-full">
+                  <RotateCcw className="h-6 w-6 text-yellow-700" />
+                </div>
                 <div>
-                  <h4 className="font-medium text-yellow-800 dark:text-yellow-200">
+                  <h4 className="font-semibold text-lg text-yellow-900">
                     Reset & Reconfigure
                   </h4>
-                  <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                  <p className="text-sm text-yellow-800 mt-1">
                     Clear all settings and restart the setup wizard from scratch
                   </p>
                 </div>
               </div>
               <Button
-                variant="outline"
-                size="sm"
+                size="default"
+                className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold px-6 shadow-md"
                 onClick={async () => {
                   if (
                     confirm(
@@ -1245,51 +1657,14 @@ export default function AdminSettings({
                     }
                   }
                 }}
-                className="border-yellow-300 text-yellow-700 hover:bg-yellow-100 dark:border-yellow-600 dark:text-yellow-300 dark:hover:bg-yellow-900/30"
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
                 Reset Setup
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Save Configuration */}
-      <Card>
-        <CardContent>
-          <div className="flex items-center justify-between pt-4">
-            <div className="flex items-center gap-2">
-              {saveStatus === "success" && (
-                <div className="flex items-center gap-1 text-green-600">
-                  <CheckCircle2 className="h-4 w-4" />
-                  <span className="text-sm">
-                    Configuration saved successfully
-                  </span>
-                </div>
-              )}
-              {saveStatus === "error" && (
-                <div className="flex items-center gap-1 text-red-600">
-                  <AlertCircle className="h-4 w-4" />
-                  <span className="text-sm">Failed to save configuration</span>
-                </div>
-              )}
-            </div>
-            <Button
-              onClick={handleSaveConfiguration}
-              disabled={!hasChanges || isSaving}
-              className="flex items-center gap-2"
-            >
-              {isSaving ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              {isSaving ? "Saving..." : "Save Configuration"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

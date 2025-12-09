@@ -20,30 +20,22 @@ export const demoConfig: Partial<SetupConfig> = {
     clampingPlateManager: true,
   },
   modules: {
-    jsonAnalyzer: {
-      enabled: true,
-      mode: "auto",
-      dataPath: "../BRK_CNC_CORE/test-data/source_data/json_files",
-      autoProcessing: true,
+    jsonScanner: {
+      autoMode: true,
+      scanPath: "../BRK_CNC_CORE/test-data/source_data/json_files",
     },
-    matrixTools: {
-      enabled: true,
-      mode: "auto",
+    jsonAnalyzer: {
+      autoMode: true,
       dataPath: "../BRK_CNC_CORE/test-data/source_data/json_files",
+    },
+    toolManager: {
+      autoMode: true,
+      excelPath: "../BRK_CNC_CORE/train-data/matrix_tools",
       inventoryFile:
         "../BRK_CNC_CORE/train-data/matrix_tools/E-Cut készlet.xlsx",
-      features: {
-        excelProcessing: true,
-        jsonScanning: true,
-      },
-      paths: {
-        excelInputPath: "../BRK_CNC_CORE/train-data/matrix_tools",
-        jsonInputPath: "../BRK_CNC_CORE/test-data/source_data/json_files",
-      },
     },
-    platesManager: {
-      enabled: true,
-      mode: "auto",
+    clampingPlateManager: {
+      autoMode: true,
       modelsPath: "../ClampingPlateManager/data/test_source_data",
       plateInfoFile:
         "../ClampingPlateManager/data/test_source_data/Készülékek.xlsx",
@@ -73,11 +65,13 @@ export const demoConfig: Partial<SetupConfig> = {
     autoBackup: true,
     exportReports: true,
     autoScan: {
-      enabled: true,
       interval: 60, // 1 hour
-      jsonScannerEnabled: true,
-      toolManagerEnabled: true,
       runOnStartup: false,
+      services: {
+        jsonScanner: true,
+        toolManager: true,
+        analyzer: true,
+      },
     },
   },
 };

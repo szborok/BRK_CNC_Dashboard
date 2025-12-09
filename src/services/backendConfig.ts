@@ -95,12 +95,18 @@ export async function configureAllBackends(wizardConfig: {
     clampingPlateManager: boolean;
   };
   modules: {
-    jsonAnalyzer: { dataPath?: string };
-    matrixTools: {
-      dataPath?: string;
-      features: { excelProcessing: boolean };
+    jsonScanner: { autoMode: boolean; scanPath: string };
+    jsonAnalyzer: { autoMode: boolean; dataPath: string };
+    toolManager: {
+      autoMode: boolean;
+      excelPath: string;
+      inventoryFile: string;
     };
-    platesManager: { modelsPath?: string };
+    clampingPlateManager: {
+      autoMode: boolean;
+      modelsPath?: string;
+      plateInfoFile?: string;
+    };
   };
   storage: {
     basePath?: string;
@@ -108,7 +114,11 @@ export async function configureAllBackends(wizardConfig: {
   };
   features?: {
     autoScan?: {
-      enabled: boolean;
+      services: {
+        jsonScanner: boolean;
+        toolManager: boolean;
+        analyzer: boolean;
+      };
     };
   };
 }): Promise<{
@@ -147,9 +157,7 @@ export async function configureAllBackends(wizardConfig: {
         autoRun: false, // AutoRunProcessor handles automation, not individual backends
         scanPaths: {
           jsonFiles: wizardConfig.modules.jsonAnalyzer.dataPath || null,
-          excelFiles: wizardConfig.modules.matrixTools.features.excelProcessing
-            ? wizardConfig.modules.matrixTools.dataPath || null
-            : null,
+          excelFiles: wizardConfig.modules.toolManager.excelPath || null,
         },
         workingFolder: wizardConfig.storage.tempPath || wizardConfig.storage.basePath || null,
       });
@@ -164,7 +172,7 @@ export async function configureAllBackends(wizardConfig: {
     try {
       results.clampingPlateManager = await configureClampingPlateManager({
         testMode: wizardConfig.demoMode,
-        platesPath: wizardConfig.modules.platesManager.modelsPath || null,
+        platesPath: wizardConfig.modules.clampingPlateManager.modelsPath || null,
         workingFolder: wizardConfig.storage.tempPath || wizardConfig.storage.basePath || null,
       });
     } catch (error) {

@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "server": "node server/index.cjs",
-    "dev": "npm run type-check && vite",
+    "dev": "vite",
+    "dev:check": "npm run type-check && vite",
     "demo": "VITE_DEMO_MODE=true vite",
     "dev:dashboard": "npm run type-check && vite",
     "start:dashboard": "npm run type-check && vite",

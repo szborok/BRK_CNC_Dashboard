@@ -1,0 +1,4 @@
+🎯 BRK CNC Dashboard Backend running on http://localhost:3004
+📁 Config path: /Users/sovi/Library/Mobile Documents/com~apple~CloudDocs/Data/personal_Fun/Coding/Projects/BRK CNC System/BRK_CNC_CORE/BRK_SETUP_WIZARD_CONFIG.json
+📁 Company config path: /Users/sovi/Library/Mobile Documents/com~apple~CloudDocs/Data/personal_Fun/Coding/Projects/BRK CNC System/BRK_CNC_CORE/test-data/source_data/company-config.json
+✅ Company config loaded from filesystem

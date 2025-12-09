@@ -31,7 +31,7 @@ export default function StopWorkModal({ isOpen, onClose, onConfirm, plateId }: S
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-white dark:bg-gray-950">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <AlertTriangle className="h-5 w-5 text-destructive" />

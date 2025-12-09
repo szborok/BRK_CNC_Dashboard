@@ -52,10 +52,18 @@ export default function Dashboard({ user }: DashboardProps) {
 
   useEffect(() => {
     loadDashboardData();
+    checkAPIStatus();
+    
+    // Listen for refresh events from BackendStatus component
+    const handleRefreshEvent = () => {
+      loadDashboardData();
+    };
+    window.addEventListener('dashboardRefresh', handleRefreshEvent);
+    
+    return () => window.removeEventListener('dashboardRefresh', handleRefreshEvent);
   }, []); // Load data on mount
 
-  // @ts-expect-error - Unused function kept for future API status checking
-  const _checkAPIStatus = async () => {
+  const checkAPIStatus = async () => {
     const status = {
       jsonScanner: false,
       toolManager: false,
@@ -147,6 +155,7 @@ export default function Dashboard({ user }: DashboardProps) {
 
       await DashboardDataService.refreshData();
       await loadDashboardData();
+      await checkAPIStatus();
     } catch (error) {
       console.error("Failed to refresh data:", error);
     } finally {
@@ -157,17 +166,30 @@ export default function Dashboard({ user }: DashboardProps) {
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
-    const diffInMinutes = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60)
+    const diffInSeconds = Math.floor(
+      (now.getTime() - date.getTime()) / 1000
     );
 
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes} minutes ago`;
-    } else if (diffInMinutes < 1440) {
-      return `${Math.floor(diffInMinutes / 60)} hours ago`;
+    if (diffInSeconds < 60) {
+      return `${diffInSeconds} seconds ago`;
+    } else if (diffInSeconds < 3600) {
+      return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    } else if (diffInSeconds < 86400) {
+      return `${Math.floor(diffInSeconds / 3600)} hours ago`;
     } else {
       return date.toLocaleDateString();
     }
+  };
+
+  const formatFullTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
   };
 
   if (isLoading) {
@@ -212,61 +234,11 @@ export default function Dashboard({ user }: DashboardProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Welcome back, {user.username}!
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300">
-              Here's what's happening with your CNC Management Dashboard.
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Last updated: {formatTimestamp(dashboardData.overview.lastUpdate)}
-            </p>
-            <div className="flex items-center gap-2 mt-3">
-              <Badge variant="default" className="text-xs">
-                <Wifi className="h-3 w-3 mr-1" />
-                Backend APIs
-              </Badge>
-              <div className="flex items-center gap-1 text-xs">
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    apiStatus.jsonScanner ? "bg-green-500" : "bg-red-500"
-                  }`}
-                  title="JSONScanner"
-                />
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    apiStatus.toolManager ? "bg-green-500" : "bg-red-500"
-                  }`}
-                  title="ToolManager"
-                />
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    apiStatus.platesManager ? "bg-green-500" : "bg-red-500"
-                  }`}
-                  title="PlatesManager"
-                />
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw
-                className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
-              />
-              Refresh
-            </Button>
-          </div>
-        </div>
+      {/* Welcome Message */}
+      <div>
+        <p className="text-lg text-gray-600 dark:text-gray-400">
+          Welcome back, <span className="font-semibold">{user.username}</span>! Here's what's happening with your CNC Management Dashboard
+        </p>
       </div>
 
       {/* Overview Cards */}
@@ -447,51 +419,53 @@ export default function Dashboard({ user }: DashboardProps) {
         </Card>
       </div>
 
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Recent Activity
-          </CardTitle>
-          <CardDescription>
-            Latest updates from all enabled modules
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {dashboardData.recentActivity.length > 0 ? (
-              dashboardData.recentActivity.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-start space-x-3 p-3 rounded-lg border"
-                >
+      {/* Recent Activity - User then Global */}
+      <div className="space-y-4">
+        {/* User Activity */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              My Activity
+            </CardTitle>
+            <CardDescription>
+              Your recent updates
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-96 overflow-y-auto space-y-3 pr-2">
+              {dashboardData.recentActivity.filter(a => a.user === user.username).length > 0 ? (
+                dashboardData.recentActivity.filter(a => a.user === user.username).map((activity) => (
                   <div
-                    className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                      activity.status === "completed"
-                        ? "bg-green-500"
-                        : activity.status === "processing"
-                        ? "bg-blue-500"
-                        : "bg-red-500"
-                    }`}
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                    key={activity.id}
+                    className="p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
                       {activity.type === "json_analysis" && (
-                        <FileJson className="h-4 w-4" />
+                        <FileJson className="h-4 w-4 text-muted-foreground" />
                       )}
                       {activity.type === "tool_inventory" && (
-                        <Archive className="h-4 w-4" />
+                        <Archive className="h-4 w-4 text-muted-foreground" />
                       )}
                       {activity.type === "plate_management" && (
-                        <Grid3X3 className="h-4 w-4" />
+                        <Grid3X3 className="h-4 w-4 text-muted-foreground" />
                       )}
-                      <p className="text-sm font-medium">{activity.project}</p>
+                      <p className="text-sm font-medium flex-1">{activity.project}</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {activity.details}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        {formatFullTimestamp(activity.timestamp)}
+                      </span>
                       <Badge
                         variant={
                           activity.status === "completed"
                             ? "default"
-                            : "secondary"
+                            : activity.status === "processing"
+                            ? "secondary"
+                            : "destructive"
                         }
                       >
                         {activity.status === "completed" && (
@@ -506,28 +480,89 @@ export default function Dashboard({ user }: DashboardProps) {
                         {activity.status}
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground mb-1">
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No recent activity to display</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Global Activity */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Global Activity
+            </CardTitle>
+            <CardDescription>
+              Latest updates from all users
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-96 overflow-y-auto space-y-3 pr-2">
+              {dashboardData.recentActivity.length > 0 ? (
+                dashboardData.recentActivity.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      {activity.type === "json_analysis" && (
+                        <FileJson className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      {activity.type === "tool_inventory" && (
+                        <Archive className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      {activity.type === "plate_management" && (
+                        <Grid3X3 className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <p className="text-sm font-medium flex-1">{activity.project}</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
                       {activity.details}
                     </p>
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {formatTimestamp(activity.timestamp)}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        {formatFullTimestamp(activity.timestamp)}
+                      </span>
+                      <Badge
+                        variant={
+                          activity.status === "completed"
+                            ? "default"
+                            : activity.status === "processing"
+                            ? "secondary"
+                            : "destructive"
+                        }
+                      >
+                        {activity.status === "completed" && (
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                        )}
+                        {activity.status === "processing" && (
+                          <Clock className="h-3 w-3 mr-1" />
+                        )}
+                        {activity.status === "failed" && (
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                        )}
+                        {activity.status}
+                      </Badge>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No recent activity to display</p>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No recent activity to display</p>
-                <p className="text-xs">
-                  Start using the enabled modules to see activity here
-                </p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Project Completion Chart */}
       {dashboardData.charts.projectCompletion.some(

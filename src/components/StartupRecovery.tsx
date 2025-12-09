@@ -111,7 +111,7 @@ export default function StartupRecovery({ config, onContinue, onOpenSetup }: Sta
             </h3>
             
             <div className="space-y-3">
-              {config.modules.jsonAnalyzer.enabled && (
+              {config.modules.jsonScanner && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm">🔍 JSONScanner</span>
                   <div className="flex items-center">
@@ -127,7 +127,7 @@ export default function StartupRecovery({ config, onContinue, onOpenSetup }: Sta
                 </div>
               )}
               
-              {config.modules.matrixTools.enabled && (
+              {config.modules.toolManager && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm">🔧 ToolManager</span>
                   <div className="flex items-center">
@@ -143,7 +143,7 @@ export default function StartupRecovery({ config, onContinue, onOpenSetup }: Sta
                 </div>
               )}
               
-              {config.modules.platesManager.enabled && (
+              {config.modules.clampingPlateManager && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm">📋 ClampingPlateManager</span>
                   <div className="flex items-center">

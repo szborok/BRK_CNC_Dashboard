@@ -829,8 +829,8 @@ function ModulesStep({
             ...config.modules.jsonAnalyzer,
             dataPath: "../BRK_CNC_CORE/test-data/source_data/json_files",
           },
-          matrixTools: {
-            ...config.modules.matrixTools,
+          toolManager: {
+            ...config.modules.toolManager,
             dataPath: "../BRK_CNC_CORE/test-data/source_data/matrix_excel_files",
             inventoryFile:
               "../BRK_CNC_CORE/test-data/source_data/matrix_excel_files/E-Cut,MFC,XF,XFeed készlet.xlsx",
@@ -839,8 +839,8 @@ function ModulesStep({
               jsonInputPath: "../BRK_CNC_CORE/test-data/source_data/json_files",
             },
           },
-          platesManager: {
-            ...config.modules.platesManager,
+          clampingPlateManager: {
+            ...config.modules.clampingPlateManager,
             modelsPath: "../BRK_CNC_CORE/test-data/source_data/clamping_plates/models",
             plateInfoFile:
               "../BRK_CNC_CORE/test-data/source_data/clamping_plates/info/Készülékek.xlsx",
@@ -855,21 +855,21 @@ function ModulesStep({
     if (
       config.companyFeatures.jsonScanner &&
       config.companyFeatures.toolManager &&
-      config.modules.jsonAnalyzer.mode === "auto" &&
-      config.modules.matrixTools.mode === "auto"
+      config.modules.jsonAnalyzer.autoMode &&
+      config.modules.toolManager.mode === "auto"
     ) {
       const jsonScannerPath = config.modules.jsonAnalyzer.dataPath;
       if (
         jsonScannerPath &&
-        jsonScannerPath !== config.modules.matrixTools.paths.jsonInputPath
+        jsonScannerPath !== config.modules.toolManager.paths.jsonInputPath
       ) {
         updateConfig({
           modules: {
             ...config.modules,
-            matrixTools: {
-              ...config.modules.matrixTools,
+            toolManager: {
+              ...config.modules.toolManager,
               paths: {
-                ...config.modules.matrixTools.paths,
+                ...config.modules.toolManager.paths,
                 jsonInputPath: jsonScannerPath,
               },
             },
@@ -879,15 +879,15 @@ function ModulesStep({
     }
   }, [
     config.modules.jsonAnalyzer.dataPath,
-    config.modules.jsonAnalyzer.mode,
-    config.modules.matrixTools.mode,
+    config.modules.jsonAnalyzer.autoMode,
+    config.modules.toolManager.mode,
     config.companyFeatures.jsonScanner,
     config.companyFeatures.toolManager,
   ]);
 
   const handleModuleModeToggle = (
     module: keyof typeof config.modules,
-    mode: "auto" | "manual"
+    autoMode: boolean
   ) => {
     if (config.demoMode) return;
     updateConfig({
@@ -895,7 +895,7 @@ function ModulesStep({
         ...config.modules,
         [module]: {
           ...config.modules[module],
-          mode: mode,
+          autoMode: autoMode,
         },
       },
     });
@@ -939,13 +939,13 @@ function ModulesStep({
       module === "jsonAnalyzer" &&
       field === "dataPath" &&
       config.companyFeatures.toolManager &&
-      config.modules.jsonAnalyzer.mode === "auto" &&
-      config.modules.matrixTools.mode === "auto"
+      config.modules.jsonAnalyzer.autoMode &&
+      config.modules.toolManager.mode === "auto"
     ) {
-      updates.modules.matrixTools = {
-        ...config.modules.matrixTools,
+      updates.modules.toolManager = {
+        ...config.modules.toolManager,
         paths: {
-          ...config.modules.matrixTools.paths,
+          ...config.modules.toolManager.paths,
           jsonInputPath: value,
         },
       };
@@ -993,11 +993,11 @@ function ModulesStep({
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={config.modules.jsonAnalyzer.mode === "auto"}
+                    checked={config.modules.jsonAnalyzer.autoMode}
                     onChange={(e) =>
                       handleModuleModeToggle(
                         "jsonAnalyzer",
-                        e.target.checked ? "auto" : "manual"
+                        e.target.checked
                       )
                     }
                     disabled={config.demoMode}
@@ -1012,13 +1012,13 @@ function ModulesStep({
               </div>
             </CardTitle>
             <CardDescription>
-              {config.modules.jsonAnalyzer.mode === "auto"
-                ? "Configure data paths for JSON analysis and CNC program processing"
-                : "Paths will be requested when you run the JSON Scanner feature at the dashboard"}
+              {config.modules.jsonAnalyzer.autoMode
+                ? "Service runs continuously in background, watching for new files"
+                : "Service waits for manual triggers from Dashboard when needed"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {config.modules.jsonAnalyzer.mode === "auto" ? (
+            {config.modules.jsonAnalyzer.autoMode ? (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="jsonDataPath">JSON Data Directory</Label>
@@ -1066,11 +1066,11 @@ function ModulesStep({
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-900 dark:text-gray-100">
-                      Manual Path Configuration
+                      Manual Mode Enabled
                     </h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      The JSON Scanner will ask for the data directory path when
-                      you start the feature from the dashboard.
+                      Service will only run when triggered manually from Dashboard.
+                      Configure paths here so they're ready when needed.
                     </p>
                   </div>
                 </div>
@@ -1095,11 +1095,11 @@ function ModulesStep({
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={config.modules.matrixTools.mode === "auto"}
+                    checked={config.modules.toolManager.autoMode}
                     onChange={(e) =>
                       handleModuleModeToggle(
-                        "matrixTools",
-                        e.target.checked ? "auto" : "manual"
+                        "toolManager",
+                        e.target.checked
                       )
                     }
                     disabled={config.demoMode}
@@ -1114,23 +1114,23 @@ function ModulesStep({
               </div>
             </CardTitle>
             <CardDescription>
-              {config.modules.matrixTools.mode === "auto"
-                ? "Configure data paths for tool inventory and Excel processing"
-                : "Paths will be requested when you run the Tool Manager feature at the dashboard"}
+              {config.modules.toolManager.autoMode
+                ? "Service runs continuously in background, processing Excel and JSON files"
+                : "Service waits for manual triggers from Dashboard when needed"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {config.modules.matrixTools.mode === "auto" ? (
+            {config.modules.toolManager.autoMode ? (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="excelScanPath">Excel Files Directory</Label>
                   <div className="flex gap-2">
                     <Input
                       id="excelScanPath"
-                      value={config.modules.matrixTools.paths.excelInputPath}
+                      value={config.modules.toolManager.paths.excelInputPath}
                       onChange={(e) =>
                         handleModulePathChange(
-                          "matrixTools",
+                          "toolManager",
                           "paths.excelInputPath",
                           e.target.value
                         )
@@ -1167,17 +1167,17 @@ function ModulesStep({
                       id="jsonScanPath"
                       value={
                         config.companyFeatures.jsonScanner &&
-                        config.modules.jsonAnalyzer.mode === "auto"
+                        config.modules.jsonAnalyzer.autoMode
                           ? config.modules.jsonAnalyzer.dataPath
-                          : config.modules.matrixTools.paths.jsonInputPath
+                          : config.modules.toolManager.paths.jsonInputPath
                       }
                       onChange={(e) =>
                         !(
                           config.companyFeatures.jsonScanner &&
-                          config.modules.jsonAnalyzer.mode === "auto"
+                          config.modules.jsonAnalyzer.autoMode
                         ) &&
                         handleModulePathChange(
-                          "matrixTools",
+                          "toolManager",
                           "paths.jsonInputPath",
                           e.target.value
                         )
@@ -1186,22 +1186,22 @@ function ModulesStep({
                       readOnly={
                         config.demoMode ||
                         (config.companyFeatures.jsonScanner &&
-                          config.modules.jsonAnalyzer.mode === "auto")
+                          config.modules.jsonAnalyzer.autoMode)
                       }
                       disabled={
                         config.demoMode ||
                         (config.companyFeatures.jsonScanner &&
-                          config.modules.jsonAnalyzer.mode === "auto")
+                          config.modules.jsonAnalyzer.autoMode)
                       }
                       className={`${
                         config.demoMode ||
                         (config.companyFeatures.jsonScanner &&
-                          config.modules.jsonAnalyzer.mode === "auto")
+                          config.modules.jsonAnalyzer.autoMode)
                           ? "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 cursor-not-allowed"
                           : ""
                       } ${
                         config.companyFeatures.jsonScanner &&
-                        config.modules.jsonAnalyzer.mode === "auto"
+                        config.modules.jsonAnalyzer.autoMode
                           ? "border-blue-300 dark:border-blue-600"
                           : ""
                       }`}
@@ -1212,12 +1212,12 @@ function ModulesStep({
                       disabled={
                         config.demoMode ||
                         (config.companyFeatures.jsonScanner &&
-                          config.modules.jsonAnalyzer.mode === "auto")
+                          config.modules.jsonAnalyzer.autoMode)
                       }
                       className={
                         config.demoMode ||
                         (config.companyFeatures.jsonScanner &&
-                          config.modules.jsonAnalyzer.mode === "auto")
+                          config.modules.jsonAnalyzer.autoMode)
                           ? "cursor-not-allowed opacity-50"
                           : ""
                       }
@@ -1226,7 +1226,7 @@ function ModulesStep({
                     </Button>
                   </div>
                   {config.companyFeatures.jsonScanner &&
-                  config.modules.jsonAnalyzer.mode === "auto" ? (
+                  config.modules.jsonAnalyzer.autoMode ? (
                     <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 text-xs">
                       <span className="flex items-center gap-1">
                         <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
@@ -1277,11 +1277,11 @@ function ModulesStep({
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={config.modules.platesManager.mode === "auto"}
+                    checked={config.modules.clampingPlateManager.autoMode}
                     onChange={(e) =>
                       handleModuleModeToggle(
-                        "platesManager",
-                        e.target.checked ? "auto" : "manual"
+                        "clampingPlateManager",
+                        e.target.checked
                       )
                     }
                     disabled={config.demoMode}
@@ -1296,23 +1296,23 @@ function ModulesStep({
               </div>
             </CardTitle>
             <CardDescription>
-              {config.modules.platesManager.mode === "auto"
-                ? "Configure paths for clamping plate models and data"
-                : "Paths will be requested when you run the Clamping Plate Manager feature at the dashboard"}
+              {config.modules.clampingPlateManager.autoMode
+                ? "Service runs continuously in background, managing plate inventory"
+                : "Service waits for manual triggers from Dashboard when needed"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {config.modules.platesManager.mode === "auto" ? (
+            {config.modules.clampingPlateManager.autoMode ? (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="plateModelsPath">Models Directory</Label>
                   <div className="flex gap-2">
                     <Input
                       id="plateModelsPath"
-                      value={config.modules.platesManager.modelsPath || ""}
+                      value={config.modules.clampingPlateManager.modelsPath || ""}
                       onChange={(e) =>
                         handleModulePathChange(
-                          "platesManager",
+                          "clampingPlateManager",
                           "modelsPath",
                           e.target.value
                         )
@@ -1347,10 +1347,10 @@ function ModulesStep({
                   <div className="flex gap-2">
                     <Input
                       id="plateInfoFile"
-                      value={config.modules.platesManager.plateInfoFile || ""}
+                      value={config.modules.clampingPlateManager.plateInfoFile || ""}
                       onChange={(e) =>
                         handleModulePathChange(
-                          "platesManager",
+                          "clampingPlateManager",
                           "plateInfoFile",
                           e.target.value
                         )
@@ -2786,7 +2786,7 @@ function PreferencesStep({
                     </div>
                   </div>
                   <Switch
-                    checked={config.features.autoScan.enabled}
+                    checked={config.features.autoScan.services}
                     onCheckedChange={(checked) =>
                       handleAutoScanChange("enabled", checked)
                     }
@@ -2794,7 +2794,7 @@ function PreferencesStep({
                   />
                 </div>
 
-                {config.features.autoScan.enabled && (
+                {config.features.autoScan.services && (
                   <div className="space-y-4 ml-6 pl-4 border-l-2 border-orange-200 dark:border-orange-700">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -3024,12 +3024,12 @@ function ValidationStep({
             addLog(`🔩 Validating clamping plate files...`);
             addLog(
               `   → Models path: ${
-                config.modules.platesManager.modelsPath || "Not configured"
+                config.modules.clampingPlateManager.modelsPath || "Not configured"
               }`
             );
             addLog(
               `   → Info file: ${
-                config.modules.platesManager.plateInfoFile || "Not configured"
+                config.modules.clampingPlateManager.plateInfoFile || "Not configured"
               }`
             );
           } else {
@@ -3156,10 +3156,8 @@ function ValidationStep({
           testMode: config.demoMode,
           workingFolder: config.storage.basePath || null,
           scanPaths: {
-            jsonFiles: config.modules.matrixTools.paths.jsonInputPath || config.modules.jsonAnalyzer.dataPath || null,
-            excelFiles: config.modules.matrixTools.features.excelProcessing
-              ? config.modules.matrixTools.paths.excelInputPath || null
-              : null
+            jsonFiles: config.modules.jsonAnalyzer.dataPath || null,
+            excelFiles: config.modules.toolManager.excelPath || null
           },
           autoRun: false
         }
@@ -3173,8 +3171,8 @@ function ValidationStep({
         config: {
           testMode: config.demoMode,
           workingFolder: config.storage.basePath || null,
-          platesPath: config.modules.platesManager.modelsPath || null,
-          plateInfoFile: config.modules.platesManager.plateInfoFile || null,
+          platesPath: config.modules.clampingPlateManager.modelsPath || null,
+          plateInfoFile: config.modules.clampingPlateManager.plateInfoFile || null,
           autoRun: true  // ClampingPlate needs this to trigger initialization during setup
         }
       });
@@ -3191,7 +3189,7 @@ function ValidationStep({
         });
         
         if (response.ok) {
-          addLog(`   → ✅ ${backend.name} processing started`);
+          addLog(`   → ✅ ${backend.name} configured`);
         } else {
           addLog(`   → ⚠️ ${backend.name} activation failed`);
         }
@@ -3200,7 +3198,40 @@ function ValidationStep({
       }
     }
     
-    addLog("✅ Backend processing activated - data will be ready shortly!");
+    // Trigger initial data processing for each service
+    addLog("📊 Triggering initial data scan...");
+    
+    if (config.companyFeatures.jsonScanner) {
+      try {
+        addLog("   → Scanning JSON files...");
+        const scanResponse = await fetch("http://localhost:3001/api/scan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        });
+        if (scanResponse.ok) {
+          addLog("   → ✅ JSON files scanned");
+        }
+      } catch (error) {
+        addLog(`   → ⚠️ JSON scan failed: ${error instanceof Error ? error.message : 'Unknown'}`);
+      }
+    }
+    
+    if (config.companyFeatures.toolManager) {
+      try {
+        addLog("   → Processing tool inventory...");
+        const processResponse = await fetch("http://localhost:3002/api/process", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        });
+        if (processResponse.ok) {
+          addLog("   → ✅ Tool inventory processed");
+        }
+      } catch (error) {
+        addLog(`   → ⚠️ Tool processing failed: ${error instanceof Error ? error.message : 'Unknown'}`);
+      }
+    }
+    
+    addLog("✅ Initial data processing complete!");
     addLog("🎉 Launching dashboard...");
     
     // Call the original onComplete to navigate to dashboard
@@ -3251,7 +3282,9 @@ function ValidationStep({
             });
             
             if (!configResponse.ok) {
-              throw new Error("Failed to configure backend");
+              const errorData = await configResponse.json().catch(() => ({ message: configResponse.statusText }));
+              addLog(`   → ⚠️ Config response error: ${JSON.stringify(errorData)}`);
+              throw new Error(`Failed to configure backend: ${errorData.error?.message || errorData.message || configResponse.statusText}`);
             }
             
             addLog(`   → ✅ Backend configured (processing will start when setup completes)`);
@@ -3275,7 +3308,7 @@ function ValidationStep({
           addLog(`   → Mode: ${config.demoMode ? 'Demo' : 'Production'}`);
           addLog(
             `   → Excel processing: ${
-              config.modules.matrixTools.features.excelProcessing
+              config.modules.toolManager.excelPath
                 ? "Enabled"
                 : "Disabled"
             }`
@@ -3305,10 +3338,8 @@ function ValidationStep({
                 testMode: config.demoMode,
                 workingFolder: config.storage.basePath || null,
                 scanPaths: {
-                  jsonFiles: config.modules.matrixTools.paths.jsonInputPath || config.modules.jsonAnalyzer.dataPath || null,
-                  excelFiles: config.modules.matrixTools.features.excelProcessing
-                    ? config.modules.matrixTools.paths.excelInputPath || null
-                    : null
+                  jsonFiles: config.modules.jsonAnalyzer.dataPath || null,
+                  excelFiles: config.modules.toolManager.excelPath || null
                 },
                 autoRun: false // Don't start processing yet
               })
@@ -3339,7 +3370,7 @@ function ValidationStep({
           addLog(`   → Mode: ${config.demoMode ? 'Demo' : 'Production'}`);
           addLog(
             `   → Models path: ${
-              config.modules.platesManager.modelsPath ||
+              config.modules.clampingPlateManager.modelsPath ||
               "Will request at runtime"
             }`
           );
@@ -3367,7 +3398,7 @@ function ValidationStep({
               body: JSON.stringify({
                 testMode: config.demoMode,
                 workingFolder: config.storage.basePath || null,
-                platesPath: config.modules.platesManager.modelsPath || null,
+                platesPath: config.modules.clampingPlateManager.modelsPath || null,
                 autoRun: false // Don't start processing yet
               })
             });

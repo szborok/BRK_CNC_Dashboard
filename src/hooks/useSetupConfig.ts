@@ -12,33 +12,36 @@ export interface SetupConfig {
     clampingPlateManager: boolean;
   };
   modules: {
+    jsonScanner: {
+      autoMode: boolean;
+      scanPath: string;
+    };
     jsonAnalyzer: {
-      enabled: boolean;
-      mode: "auto" | "manual";
+      autoMode: boolean;
       dataPath: string;
-      autoProcessing: boolean;
     };
-    matrixTools: {
-      enabled: boolean;
-      mode: "auto" | "manual";
-      dataPath: string;
+    toolManager: {
+      autoMode: boolean;
+      excelPath: string;
       inventoryFile: string;
-      features: {
-        excelProcessing: boolean;
-        jsonScanning: boolean;
+      // Legacy properties for backward compatibility - remove after Dashboard refactor
+      mode?: "auto" | "manual";
+      dataPath?: string;
+      paths?: {
+        excelInputPath?: string;
+        jsonInputPath?: string;
       };
-      paths: {
-        excelInputPath: string;
-        jsonInputPath: string;
+      features?: {
+        excelProcessing?: boolean;
+        jsonScanning?: boolean;
       };
     };
-    platesManager: {
-      enabled: boolean;
-      mode: "auto" | "manual";
+    clampingPlateManager: {
+      autoMode: boolean;
       modelsPath?: string;
       plateInfoFile?: string;
-      dataPath?: string;
-      plateDatabase?: string;
+      // Legacy property for backward compatibility - remove after Dashboard refactor
+      mode?: "auto" | "manual";
     };
   };
   authentication: {
@@ -70,11 +73,13 @@ export interface SetupConfig {
     autoBackup: boolean;
     exportReports: boolean;
     autoScan: {
-      enabled: boolean;
       interval: number; // in minutes: 15, 30, 60, 120, 240 (4 hours), 480 (8 hours), 720 (12 hours), 1440 (daily)
-      jsonScannerEnabled: boolean;
-      toolManagerEnabled: boolean;
       runOnStartup: boolean;
+      services: {
+        jsonScanner: boolean;
+        toolManager: boolean;
+        analyzer: boolean;
+      };
     };
   };
 }
@@ -89,33 +94,23 @@ const defaultConfig: SetupConfig = {
     clampingPlateManager: true,
   },
   modules: {
+    jsonScanner: {
+      autoMode: false,
+      scanPath: "",
+    },
     jsonAnalyzer: {
-      enabled: false,
-      mode: "auto",
+      autoMode: false,
       dataPath: "",
-      autoProcessing: true,
     },
-    matrixTools: {
-      enabled: false,
-      mode: "auto",
-      dataPath: "",
+    toolManager: {
+      autoMode: false,
+      excelPath: "",
       inventoryFile: "",
-      features: {
-        excelProcessing: true,
-        jsonScanning: true,
-      },
-      paths: {
-        excelInputPath: "",
-        jsonInputPath: "",
-      },
     },
-    platesManager: {
-      enabled: false,
-      mode: "auto",
+    clampingPlateManager: {
+      autoMode: false,
       modelsPath: "",
       plateInfoFile: "",
-      dataPath: "",
-      plateDatabase: "",
     },
   },
   authentication: {
@@ -145,11 +140,13 @@ const defaultConfig: SetupConfig = {
     autoBackup: true,
     exportReports: true,
     autoScan: {
-      enabled: false,
       interval: 60, // 1 hour default
-      jsonScannerEnabled: true,
-      toolManagerEnabled: true,
       runOnStartup: false,
+      services: {
+        jsonScanner: true,
+        toolManager: true,
+        analyzer: true,
+      },
     },
   },
 };

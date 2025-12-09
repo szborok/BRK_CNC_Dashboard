@@ -128,15 +128,15 @@ export class StartupRecoveryService {
     };
 
     // Check each service by attempting HTTP requests to their endpoints
-    if (this.config.modules.jsonAnalyzer.enabled) {
+    if (this.config.modules.jsonScanner) {
       services.jsonScanner = await this.pingService("http://localhost:3001/health");
     }
 
-    if (this.config.modules.matrixTools.enabled) {
+    if (this.config.modules.toolManager) {
       services.toolManager = await this.pingService("http://localhost:3003/health");
     }
 
-    if (this.config.modules.platesManager.enabled) {
+    if (this.config.modules.clampingPlateManager) {
       services.clampingPlateManager = await this.pingService("http://localhost:3002/health");
     }
 
@@ -166,19 +166,19 @@ export class StartupRecoveryService {
       "",
     ];
 
-    if (this.config.modules.jsonAnalyzer.enabled) {
+    if (this.config.modules.jsonScanner) {
       instructions.push(
         "🔍 **JSONScanner** - Start: `cd JSONScanner && npm run auto`",
       );
     }
 
-    if (this.config.modules.matrixTools.enabled) {
+    if (this.config.modules.toolManager) {
       instructions.push(
         "🔧 **ToolManager** - Start: `cd ToolManager && npm run auto`",
       );
     }
 
-    if (this.config.modules.platesManager.enabled) {
+    if (this.config.modules.clampingPlateManager) {
       instructions.push(
         "📋 **ClampingPlateManager** - Start: `cd ClampingPlateManager && npm start`",
       );
@@ -191,7 +191,7 @@ export class StartupRecoveryService {
       "📁 **Your Configuration:**",
       `   • Base Path: ${this.config.storage.basePath}`,
       `   • Company: ${this.config.companyName}`,
-      `   • Modules: ${Object.entries(this.config.modules).filter(([_, module]) => module.enabled).map(([name]) => name).join(", ")}`,
+      `   • Modules: ${Object.entries(this.config.modules).filter(([_, module]) => module.autoMode).map(([name]) => name).join(", ")}`,
     );
 
     return instructions;

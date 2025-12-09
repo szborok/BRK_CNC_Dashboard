@@ -144,8 +144,7 @@ export default function TodaysMatrixTools() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Today's Matrix Tools</h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-sm text-gray-500">
             {filteredTools.length} of {tools.length} matrix tools
           </p>
         </div>

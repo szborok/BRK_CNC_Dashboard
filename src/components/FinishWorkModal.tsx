@@ -44,7 +44,7 @@ export default function FinishWorkModal({ isOpen, onClose, onConfirm, plateId }:
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-white dark:bg-gray-950">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <CheckCircle className="h-5 w-5 text-green-600" />

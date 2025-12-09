@@ -1,10 +1,15 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Label } from './ui/label';
-import { Separator } from './ui/separator';
-import { ScrollArea } from './ui/scroll-area';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from './ui/table';
 import {
   Download,
   Play,
@@ -13,9 +18,9 @@ import {
   CheckCircle,
   Edit3,
   Calendar,
-  User,
   MapPin,
-  Box
+  Box,
+  Lock
 } from 'lucide-react';
 import { LegacyUser, Plate } from '../App';
 import { toast } from "sonner";
@@ -165,184 +170,312 @@ export default function PlateDetailModal({ plate, user, isOpen, onClose, onUpdat
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-6xl max-h-[95vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <span>Plate Details - {plate.id}</span>
-              <div className="flex gap-2">
-                {getHealthBadge(plate.health)}
-                {getOccupancyBadge(plate.occupancy)}
-              </div>
-            </DialogTitle>
-            <DialogDescription>
-              {plate.name && `${plate.name} • `}Shelf: {plate.shelf}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-hidden space-y-6">
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-              {/* Left Column - 3D Viewer (Larger) */}
-              <div className="xl:col-span-2 space-y-4">
-                <div className="bg-muted rounded-lg aspect-video xl:aspect-square flex items-center justify-center border-2 border-dashed border-muted-foreground/25 min-h-[400px]">
-                  <div className="text-center">
-                    <Box className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-lg text-muted-foreground">3D Viewer Placeholder</p>
-                    <p className="text-muted-foreground">3D model would display here</p>
-                    <p className="text-sm text-muted-foreground mt-2">Click and drag to rotate • Scroll to zoom</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column - Details and Controls */}
-              <div className="space-y-6 overflow-y-auto">
-                {/* Basic Info */}
-                <div className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <MapPin className="h-5 w-5 text-muted-foreground" />
-                      <span>Shelf Location: {plate.shelf}</span>
-                    </div>
-                    
-                    {plate.lastWorkName && (
-                      <div>
-                        <Label>Last Work</Label>
-                        <p className="font-mono">{plate.lastWorkName}</p>
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span>Modified by {plate.lastModifiedBy}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span>{plate.lastModifiedDate.toLocaleString()}</span>
-                      </div>
-                    </div>
-
-                    {plate.notes && (
-                      <div>
-                        <Label>Notes</Label>
-                        <p className="text-muted-foreground">{plate.notes}</p>
-                      </div>
+      {isOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-6xl w-full max-h-[90vh] flex flex-col bg-white shadow-xl">
+            <CardHeader className="border-b">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <CardTitle className="text-xl">Plate #{plate.plateNumber || 'N/A'}</CardTitle>
+                    {getHealthBadge(plate.health)}
+                    {getOccupancyBadge(plate.occupancy)}
+                    {(plate as any).isLocked && (
+                      <Badge variant="destructive">
+                        <Lock className="h-3 w-3 mr-1" />
+                        Locked
+                      </Badge>
                     )}
                   </div>
+                  <CardDescription className="mt-2 flex items-center gap-4">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      Shelf {plate.shelf}
+                    </span>
+                    <span className="text-sm text-gray-600">
+                      ID: {plate.id}
+                    </span>
+                    {plate.lastModifiedDate && (
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(plate.lastModifiedDate).toLocaleDateString()}
+                      </span>
+                    )}
+                  </CardDescription>
                 </div>
-
-                <Separator />
-
-                {/* Download Button */}
-                <div>
-                  <Button onClick={handleDownload} variant="outline" className="w-full">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download X_T File
-                  </Button>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClose}
+                >
+                  ✕
+                </Button>
               </div>
-            </div>
+            </CardHeader>
 
-            {/* History - Full Width Section */}
-            <div className="space-y-4">
-              <Separator />
-              <Label>Change History</Label>
-              <ScrollArea className="h-40 w-full border rounded-md p-4">
-                <div className="space-y-3">
-                  {plate.history
-                    .filter((entry) => {
-                      // Admin users see all history
-                      if (user.isAdmin) return true;
+            <CardContent className="overflow-auto flex-1 p-6">
+              <div className="space-y-6">
+                {/* Latest Stage Display */}
+                {(() => {
+                  const workProjects = (plate as any).workProjects;
+                  if (!workProjects || workProjects.length === 0) return null;
+                  
+                  const latestStage = workProjects[workProjects.length - 1];
+                  const stageIdx = workProjects.length - 1;
+                  
+                  return (
+                    <div className="border rounded-lg p-4 bg-gray-50">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Badge variant="outline" className="font-mono">
+                          Stage {latestStage.projectCode || String.fromCharCode(65 + stageIdx)}
+                        </Badge>
+                        <span className="font-semibold text-sm">
+                          {latestStage.workOrder}
+                        </span>
+                      </div>
                       
-                      // Normal users only see completion/upload entries
-                      return entry.action === 'Work completed' || 
-                             entry.action === 'File uploaded' || 
-                             entry.action === 'Plate created';
-                    })
-                    .map((entry) => (
-                      <div key={entry.id}>
-                        <div className="flex items-start space-x-3">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p>
-                              <span className="font-medium">{entry.action}</span>
-                              <span className="text-muted-foreground"> by {entry.user}</span>
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {entry.date.toLocaleString()}
-                            </p>
-                            {entry.details && (
-                              <p className="text-sm text-muted-foreground">
-                                {entry.details}
-                              </p>
-                            )}
+                      <div className="flex gap-4">
+                        {/* Left: Preview - 45% width */}
+                        <div className="w-[45%]">
+                          {(plate as any).previewImage ? (
+                            <img 
+                              src={`http://localhost:3003/api/previews/${(plate as any).previewImage}`}
+                              alt="Plate preview"
+                              className="w-full aspect-square object-contain rounded border bg-white"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                                (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                              }}
+                            />
+                          ) : null}
+                          <div className={`bg-gray-200 rounded aspect-square flex items-center justify-center ${(plate as any).previewImage ? 'hidden' : ''}`}>
+                            <span className="text-xs text-gray-400">No preview available</span>
                           </div>
                         </div>
+                        
+                        {/* Right: Stage Data - 55% width */}
+                        <div className="w-[55%] space-y-3 text-right">
+                          <p className="text-sm font-medium text-gray-700 pb-2 border-b">
+                            {latestStage.fullEntry}
+                          </p>
+                          
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-end items-baseline gap-2">
+                              <span className="text-gray-500 font-medium">User:</span>
+                              <span className="text-gray-700">Unknown (Excel import)</span>
+                            </div>
+                            <div className="flex justify-end items-baseline gap-2">
+                              <span className="text-gray-500 font-medium">Date:</span>
+                              <span className="text-gray-700">Unknown (Excel import)</span>
+                            </div>
+                            <div className="flex justify-end items-baseline gap-2">
+                              <span className="text-gray-500 font-medium">Original Model:</span>
+                              <span className="text-gray-700">Not recorded</span>
+                            </div>
+                            <div className="flex justify-end items-baseline gap-2">
+                              <span className="text-gray-500 font-medium">Result Model:</span>
+                              <span className="text-gray-700">Not recorded</span>
+                            </div>
+                          </div>
+
+                          {/* Notes if any */}
+                          {plate.notes && plate.notes.trim() !== '' && (
+                            <div className="pt-2">
+                              <div className="text-xs text-gray-500 mb-1">Notes:</div>
+                              <div className="p-2 bg-amber-50 border border-amber-200 rounded text-xs">
+                                {plate.notes}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    ))
-                  }
-                  {plate.history
-                    .filter((entry) => {
-                      if (user.isAdmin) return true;
-                      return entry.action === 'Work completed' || 
-                             entry.action === 'File uploaded' || 
-                             entry.action === 'Plate created';
-                    }).length === 0 && (
-                    <div className="text-center py-4 text-muted-foreground">
-                      <p className="text-sm">No relevant history available</p>
+                    </div>
+                  );
+                })()}
+
+                {/* Work Stages History */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                    Work Stages History
+                  </h3>
+                  
+                  {/* Convert Excel work projects to stages (legacy data) - Show from newest to oldest */}
+                  {(() => {
+                    const workProjects = (plate as any).workProjects;
+                    console.log('🔍 [PlateDetail] workProjects:', workProjects);
+                    console.log('🔍 [PlateDetail] plate keys:', Object.keys(plate));
+                    return workProjects && workProjects.length > 0;
+                  })() ? (
+                    <div className="space-y-2">
+                      {[...(plate as any).workProjects].reverse().map((project: any, reverseIdx: number) => {
+                        const idx = (plate as any).workProjects.length - 1 - reverseIdx;
+                        const [isOpen, setIsOpen] = useState(false);
+                        return (
+                          <div key={idx} className="border rounded-lg bg-gray-50">
+                            {/* Stage Header - Clickable */}
+                            <button
+                              onClick={() => setIsOpen(!isOpen)}
+                              className="w-full p-3 flex items-center justify-between hover:bg-gray-100 transition-colors rounded-lg"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="font-mono">
+                                  Stage {project.projectCode || String.fromCharCode(65 + idx)}
+                                </Badge>
+                                <span className="font-semibold text-sm">
+                                  {project.workOrder}
+                                </span>
+                              </div>
+                              <span className="text-gray-400">
+                                {isOpen ? '▼' : '▶'}
+                              </span>
+                            </button>
+
+                            {/* Stage Details - Collapsible */}
+                            {isOpen && (
+                              <div className="px-4 pb-4 space-y-3">
+                                <p className="text-xs text-gray-600 pb-2 border-b">
+                                  {project.fullEntry}
+                                </p>
+                                
+                                <div className="grid grid-cols-2 gap-3 text-xs">
+                                  <div>
+                                    <span className="text-gray-500">User:</span>
+                                    <span className="ml-2 text-gray-600">Unknown (Excel import)</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Date:</span>
+                                    <span className="ml-2 text-gray-600">Unknown (Excel import)</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Original Model:</span>
+                                    <span className="ml-2 text-gray-600">Not recorded</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Result Model:</span>
+                                    <span className="ml-2 text-gray-600">Not recorded</span>
+                                  </div>
+                                </div>
+
+                                {/* Preview placeholder */}
+                                <div>
+                                  <div className="text-xs text-gray-500 mb-1">Preview:</div>
+                                  <div className="bg-gray-200 rounded h-24 flex items-center justify-center">
+                                    <span className="text-xs text-gray-400">No preview available</span>
+                                  </div>
+                                </div>
+
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      
+                      {(plate as any).excelSource && (
+                        <p className="text-xs text-gray-500 italic">
+                          ℹ️ Legacy data imported from Excel: {(plate as any).excelSource.worksheet} 
+                          (Rows {(plate as any).excelSource.firstRow}-{(plate as any).excelSource.lastRow})
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500 border rounded-lg bg-gray-50">
+                      <p className="text-sm">No work stages recorded yet</p>
+                      <p className="text-xs mt-1">Start work to create the first stage</p>
                     </div>
                   )}
                 </div>
-              </ScrollArea>
-            </div>
-          </div>
 
-          {/* Action Buttons at Bottom */}
-          <div className="border-t pt-6">
-            <div className="flex flex-wrap gap-3 justify-between">
-              <div className="flex flex-wrap gap-3">
-                {/* Play/Pause Button */}
-                {canStartWork && (
-                  <Button onClick={handleStartWork} size="lg">
-                    <Play className="h-4 w-4 mr-2" />
-                    Start Work
-                  </Button>
-                )}
-                {canPauseWork && (
-                  <Button onClick={handlePauseWork} variant="outline" size="lg">
-                    <Pause className="h-4 w-4 mr-2" />
-                    Pause Work
-                  </Button>
-                )}
-
-                {/* Stop Button */}
-                {canStopWork && (
-                  <Button onClick={() => setShowStopModal(true)} variant="destructive" size="lg">
-                    <Square className="h-4 w-4 mr-2" />
-                    Stop Work
-                  </Button>
-                )}
-
-                {/* Admin Edit Button */}
-                {user.isAdmin && (
-                  <Button onClick={() => setShowAdminModal(true)} variant="outline" size="lg">
-                    <Edit3 className="h-4 w-4 mr-2" />
-                    Admin Edit
-                  </Button>
+                {/* History */}
+                {plate.history && plate.history.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">History</h3>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Action</TableHead>
+                          <TableHead>User</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Details</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {plate.history.slice(0, 10).map((entry) => (
+                          <TableRow key={entry.id}>
+                            <TableCell className="font-medium text-sm">{entry.action}</TableCell>
+                            <TableCell className="text-sm">{entry.user}</TableCell>
+                            <TableCell className="text-sm text-gray-600">
+                              {new Date(entry.date).toLocaleString()}
+                            </TableCell>
+                            <TableCell className="text-xs text-gray-600">
+                              {entry.details || '-'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </div>
+            </CardContent>
 
-              {/* Finish Button at the end */}
-              {canFinishWork && (
-                <Button onClick={() => setShowFinishModal(true)} className="bg-green-600 hover:bg-green-700 text-white" size="lg">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Finish Work
-                </Button>
-              )}
+            {/* Action Footer */}
+            <div className="border-t p-4">
+              <div className="flex flex-wrap gap-2 justify-between">
+                <div className="flex flex-wrap gap-2">
+                  {canStartWork && (
+                    <Button onClick={handleStartWork} size="sm" className="bg-green-600 hover:bg-green-700">
+                      <Play className="h-4 w-4 mr-1" />
+                      Start Work
+                    </Button>
+                  )}
+                  {canPauseWork && (
+                    <Button onClick={handlePauseWork} variant="outline" size="sm">
+                      <Pause className="h-4 w-4 mr-1" />
+                      Pause
+                    </Button>
+                  )}
+                  {canStopWork && (
+                    <Button onClick={() => setShowStopModal(true)} variant="destructive" size="sm">
+                      <Square className="h-4 w-4 mr-1" />
+                      Stop
+                    </Button>
+                  )}
+                  {user.isAdmin && (
+                    <Button 
+                      onClick={() => setShowAdminModal(true)} 
+                      size="sm"
+                      className="bg-purple-600 hover:bg-purple-700 text-white"
+                    >
+                      <Edit3 className="h-4 w-4 mr-1" />
+                      Admin Edit
+                    </Button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    onClick={handleDownload} 
+                    variant="outline" 
+                    size="sm"
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Download Model
+                  </Button>
+                  {canFinishWork && (
+                    <Button 
+                      onClick={() => setShowFinishModal(true)} 
+                      className="bg-blue-600 hover:bg-blue-700" 
+                      size="sm"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Finish Work
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </Card>
+        </div>
+      )}
 
       {/* Stop Work Modal */}
       <StopWorkModal

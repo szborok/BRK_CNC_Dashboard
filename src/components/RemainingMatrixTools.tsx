@@ -165,8 +165,7 @@ export default function RemainingMatrixTools() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Remaining Matrix Tools</h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-sm text-gray-500">
             {filteredTools.length} of {tools.length} tools - Capacity based on running time
           </p>
         </div>

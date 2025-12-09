@@ -241,22 +241,35 @@ export class BackendDataLoader {
    * Load ClampingPlateManager inventory from backend API
    */
   static async loadClampingPlateData(): Promise<ClampingPlateResult | null> {
+    console.log("🔍 [PlateLoader] Attempting to load plates from API...");
     try {
       // First try to fetch from backend API
       try {
+        console.log("🔍 [PlateLoader] Fetching from http://localhost:3003/api/plates");
         const response = await fetch("http://localhost:3003/api/plates", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
 
+        console.log(`🔍 [PlateLoader] Response status: ${response.status}`);
+        
         if (response.ok) {
           const data = await response.json();
+          console.log(`🔍 [PlateLoader] Received data:`, {
+            hasMetadata: !!data.metadata,
+            hasPlates: !!data.plates,
+            platesIsArray: Array.isArray(data.plates),
+            plateCount: data.plates?.length || 0
+          });
           // Cache in localStorage
           localStorage.setItem("clampingPlateResults", JSON.stringify(data));
           console.log(`✅ Loaded ${data.plates?.length || 0} plates from ClampingPlateManager API`);
           return data;
+        } else {
+          console.error(`❌ [PlateLoader] API returned non-OK status: ${response.status}`);
         }
       } catch (apiError) {
+        console.error("❌ [PlateLoader] API fetch failed:", apiError);
         console.warn("ClampingPlateManager API not available, falling back to cache");
       }
 

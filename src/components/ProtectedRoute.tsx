@@ -1,5 +1,4 @@
 import { ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -122,22 +121,31 @@ export default function ProtectedRoute({
     canAccessMachine 
   } = useAuth();
   
-  const location = useLocation();
-
   // Show loading while checking authentication
   if (isLoading) {
     return <AuthLoadingComponent />;
   }
 
-  // Redirect to login if not authenticated
+  // Show message if not authenticated (shouldn't happen in this view-based system)
   if (!isAuthenticated || !user) {
-    return <Navigate to={fallbackPath} state={{ from: location }} replace />;
+    return (
+      <AccessDenied
+        reason="You must be logged in to access this area."
+        suggestions={['Please log in to continue']}
+      />
+    );
   }
 
   // Role-based access control
   if (requiredRole && !hasRole(requiredRole)) {
     if (!showAccessDenied) {
-      return <Navigate to={fallbackPath} replace />;
+      // In view-based system, just show access denied
+      return (
+        <AccessDenied
+          reason="Access denied - insufficient role"
+          suggestions={['Contact your administrator']}
+        />
+      );
     }
 
     const roleHierarchy = {
@@ -169,7 +177,12 @@ export default function ProtectedRoute({
   
   if (missingPermissions.length > 0) {
     if (!showAccessDenied) {
-      return <Navigate to={fallbackPath} replace />;
+      return (
+        <AccessDenied
+          reason="Missing required permissions"
+          suggestions={['Contact your administrator']}
+        />
+      );
     }
 
     return (
@@ -191,7 +204,12 @@ export default function ProtectedRoute({
   // Machine-specific access control
   if (requiredMachine && !canAccessMachine(requiredMachine)) {
     if (!showAccessDenied) {
-      return <Navigate to={fallbackPath} replace />;
+      return (
+        <AccessDenied
+          reason="Machine access denied"
+          suggestions={['Contact your supervisor']}
+        />
+      );
     }
 
     return (

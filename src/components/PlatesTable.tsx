@@ -55,6 +55,15 @@ const loadRealPlateData = (): Plate[] => {
             ? "in-use"
             : "free";
 
+          // Convert workProjects to history entries
+          const history = (backendPlate.workProjects || []).map((project: any, index: number) => ({
+            id: `work-${backendPlate.id}-${index}`,
+            action: 'Work Project',
+            user: 'Unknown (Excel import)',
+            date: new Date(backendPlate.metadata?.generatedDate || Date.now()),
+            details: `Project: ${project.projectCode || 'Unknown'} | Work Order: ${project.workOrder || 'N/A'} | ${project.fullEntry || 'No details'}`
+          }));
+
           return {
             id: backendPlate.id,
             plateNumber: backendPlate.plateNumber,
@@ -73,15 +82,14 @@ const loadRealPlateData = (): Plate[] => {
             lastModifiedDate: new Date(
               backendPlate.metadata?.generatedDate || Date.now()
             ),
-            history:
-              backendPlate.workProjects?.map((wp: any, idx: number) => ({
-                id: `${backendPlate.id}_${idx}`,
-                action: "Work completed",
-                user: "Operator",
-                date: new Date(),
-                details: `${wp.projectCode || ""}: ${wp.workOrder}`.trim(),
-              })) || [],
-          };
+            history,
+            // Preserve original backend data for detail view
+            workProjects: backendPlate.workProjects || [],
+            workHistoryEntries: backendPlate.workHistoryEntries || [],
+            excelSource: backendPlate.excelSource,
+            isLocked: backendPlate.isLocked || false,
+            modelFiles: backendPlate.modelFiles || [],
+          } as any;
         });
       }
     }
@@ -169,19 +177,30 @@ export default function PlatesTable({ user, filter }: PlatesTableProps) {
   const [selectedPlate, setSelectedPlate] = useState<Plate | null>(null);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<
-    "name" | "status" | "shelf" | "modified"
+    "id" | "name" | "status" | "shelf" | "modified"
   >("modified");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   // Load real plate data on mount and when localStorage changes
   useEffect(() => {
     const loadPlates = async () => {
+      console.log("🔍 [PlatesTable] Component mounted, loading plates...");
       // First try to load from API to populate cache
-      await BackendDataLoader.loadClampingPlateData();
+      const apiResult = await BackendDataLoader.loadClampingPlateData();
+      console.log("🔍 [PlatesTable] API result:", apiResult ? "data received" : "no data");
       
       // Then load from localStorage (now populated by API)
       const realPlates = loadRealPlateData();
-      console.log(`Loaded ${realPlates.length} plates from backend`);
+      console.log(`✅ [PlatesTable] Loaded ${realPlates.length} plates from backend`);
+      
+      if (realPlates.length === 0) {
+        console.warn("⚠️ [PlatesTable] No plates loaded! Check:");
+        console.warn("  1. Is ClampingPlateManager running on port 3003?");
+        console.warn("  2. Does plates.json have data?");
+        console.warn("  3. Check browser console for errors");
+        console.warn("  4. Check localStorage for 'clampingPlateResults'");
+      }
+      
       setPlates(realPlates);
     };
 
@@ -203,9 +222,14 @@ export default function PlatesTable({ user, filter }: PlatesTableProps) {
   const filteredPlates = getFilteredPlates(plates, filter, search);
 
   const sortedPlates = [...filteredPlates].sort((a, b) => {
-    let aValue: string | Date, bValue: string | Date;
+    let aValue: string | Date | number, bValue: string | Date | number;
 
     switch (sortBy) {
+      case "id":
+        // Sort by plateNumber (numeric)
+        const aNum = a.plateNumber || 0;
+        const bNum = b.plateNumber || 0;
+        return sortOrder === "asc" ? aNum - bNum : bNum - aNum;
       case "name":
         aValue = a.name || a.id;
         bValue = b.name || b.id;
@@ -256,8 +280,7 @@ export default function PlatesTable({ user, filter }: PlatesTableProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1>{getPageTitle()}</h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {sortedPlates.length} plate{sortedPlates.length !== 1 ? "s" : ""}{" "}
             found
           </p>
@@ -287,7 +310,8 @@ export default function PlatesTable({ user, filter }: PlatesTableProps) {
                 <SelectTrigger className="w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
+                  <SelectItem value="id">Sort by ID</SelectItem>
                   <SelectItem value="name">Sort by Name</SelectItem>
                   <SelectItem value="status">Sort by Status</SelectItem>
                   <SelectItem value="shelf">Sort by Shelf</SelectItem>

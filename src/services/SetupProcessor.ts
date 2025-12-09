@@ -82,11 +82,11 @@ export class SetupProcessor {
     if (this.config.companyFeatures.jsonScanner) {
       moduleConfigs.jsonScanner = {
         enabled: true,
-        mode: this.config.modules.jsonAnalyzer.mode,
+        mode: this.config.modules.jsonAnalyzer.autoMode,
         dataPath: this.config.modules.jsonAnalyzer.dataPath,
         outputPath: this.config.storage.outputPath + "/json_analysis",
         rules: ["AutoCorrectionContour", "M110Contour", "SingleToolInNC"],
-        autoProcess: this.config.modules.jsonAnalyzer.mode === "auto",
+        autoProcess: this.config.modules.jsonAnalyzer.autoMode === true,
       };
     }
 
@@ -94,13 +94,13 @@ export class SetupProcessor {
     if (this.config.companyFeatures.toolManager) {
       moduleConfigs.toolManager = {
         enabled: true,
-        mode: this.config.modules.matrixTools.mode,
-        excelInputPath: this.config.modules.matrixTools.paths?.excelInputPath,
+        mode: this.config.modules.toolManager.mode,
+        excelInputPath: this.config.modules.toolManager.paths?.excelInputPath,
         jsonInputPath: this.config.companyFeatures.jsonScanner
           ? this.config.modules.jsonAnalyzer.dataPath
-          : this.config.modules.matrixTools.paths?.jsonInputPath,
+          : this.config.modules.toolManager.paths?.jsonInputPath,
         outputPath: this.config.storage.outputPath + "/tool_analysis",
-        autoProcess: this.config.modules.matrixTools.mode === "auto",
+        autoProcess: this.config.modules.toolManager.autoMode === true,
       };
     }
 
@@ -108,8 +108,8 @@ export class SetupProcessor {
     if (this.config.companyFeatures.clampingPlateManager) {
       moduleConfigs.clampingPlateManager = {
         enabled: true,
-        modelsPath: this.config.modules.platesManager.modelsPath,
-        plateInfoFile: this.config.modules.platesManager.plateInfoFile,
+        modelsPath: this.config.modules.clampingPlateManager.modelsPath,
+        plateInfoFile: this.config.modules.clampingPlateManager.plateInfoFile,
         outputPath: this.config.storage.outputPath + "/plate_analysis",
       };
     }
@@ -151,18 +151,18 @@ export class SetupProcessor {
 
     if (
       this.config.companyFeatures.toolManager &&
-      this.config.modules.matrixTools.paths?.excelInputPath
+      this.config.modules.toolManager.paths?.excelInputPath
     ) {
-      directories.push(this.config.modules.matrixTools.paths.excelInputPath);
+      directories.push(this.config.modules.toolManager.paths.excelInputPath);
     }
 
     if (this.config.companyFeatures.clampingPlateManager) {
-      if (this.config.modules.platesManager.modelsPath) {
-        directories.push(this.config.modules.platesManager.modelsPath);
+      if (this.config.modules.clampingPlateManager.modelsPath) {
+        directories.push(this.config.modules.clampingPlateManager.modelsPath);
       }
       // Note: plateInfoFile is a file path, not a directory, so we extract the directory
-      if (this.config.modules.platesManager.plateInfoFile) {
-        const infoFileDir = this.config.modules.platesManager.plateInfoFile
+      if (this.config.modules.clampingPlateManager.plateInfoFile) {
+        const infoFileDir = this.config.modules.clampingPlateManager.plateInfoFile
           .split(/[\\/]/)
           .slice(0, -1)
           .join("\\");

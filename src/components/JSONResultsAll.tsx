@@ -26,8 +26,27 @@ import {
   RefreshCw,
   Eye,
   Calendar,
+  RotateCcw,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useCompanyConfig } from "../hooks/useCompanyConfig";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "./ui/dialog";
+import { Label } from "./ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { DatePicker } from "./ui/date-picker";
 
 interface RuleDetail {
   name: string;
@@ -73,6 +92,7 @@ interface JSONResultsAllProps {
 
 export default function JSONResultsAll({ userFilter, scanTypeFilter: initialScanTypeFilter }: JSONResultsAllProps = {}) {
   const { user } = useAuth();
+  const { config: companyConfig } = useCompanyConfig();
   const [results, setResults] = useState<JSONScanResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -80,11 +100,16 @@ export default function JSONResultsAll({ userFilter, scanTypeFilter: initialScan
   const [statusFilter, setStatusFilter] = useState<"all" | "passed" | "failed" | "warning">("all");
   const [machineFilter, setMachineFilter] = useState<string>("all");
   const [programmerFilter, setProgrammerFilter] = useState<string>(userFilter || "all");
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const [selectedResult, setSelectedResult] = useState<JSONScanResult | null>(
     null
   );
+  const [showReprocessDialog, setShowReprocessDialog] = useState(false);
+  const [reprocessDateFrom, setReprocessDateFrom] = useState<Date | undefined>();
+  const [reprocessDateTo, setReprocessDateTo] = useState<Date | undefined>();
+  const [reprocessMachines, setReprocessMachines] = useState<string[]>([]);
+  const [isReprocessing, setIsReprocessing] = useState(false);
 
   useEffect(() => {
     loadResults();
@@ -192,8 +217,8 @@ export default function JSONResultsAll({ userFilter, scanTypeFilter: initialScan
     
     // Date range filter
     const resultDate = new Date(result.processedAt);
-    const matchesDateFrom = !dateFrom || resultDate >= new Date(dateFrom);
-    const matchesDateTo = !dateTo || resultDate <= new Date(dateTo + 'T23:59:59');
+    const matchesDateFrom = !dateFrom || resultDate >= dateFrom;
+    const matchesDateTo = !dateTo || resultDate <= new Date(dateTo.getTime() + 86399999); // Add 23:59:59.999
     
     return matchesSearch && matchesScanType && matchesStatus && matchesMachine && matchesProgrammer && matchesDateFrom && matchesDateTo;
   });
@@ -226,6 +251,62 @@ export default function JSONResultsAll({ userFilter, scanTypeFilter: initialScan
     }
   };
 
+  const handleForceReprocess = async () => {
+    if (!reprocessDateFrom || !reprocessDateTo) {
+      alert('Please select both start and end dates');
+      return;
+    }
+
+    setIsReprocessing(true);
+    try {
+      const response = await fetch('http://localhost:3005/api/reprocess', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dateFrom: reprocessDateFrom?.toISOString().split('T')[0],
+          dateTo: reprocessDateTo?.toISOString().split('T')[0],
+          machines: reprocessMachines.length === 0 ? null : reprocessMachines,
+        }),
+      });
+
+      if (response.ok) {
+        alert('Reprocessing started successfully. This may take some time.');
+        setShowReprocessDialog(false);
+        setReprocessDateFrom(undefined);
+        setReprocessDateTo(undefined);
+        setReprocessMachines([]);
+        // Reload results after a short delay
+        setTimeout(() => loadResults(), 2000);
+      } else {
+        alert('Failed to start reprocessing');
+      }
+    } catch (error) {
+      console.error('Failed to reprocess:', error);
+      alert('Failed to start reprocessing');
+    } finally {
+      setIsReprocessing(false);
+    }
+  };
+
+  const toggleReprocessMachine = (machineId: string) => {
+    setReprocessMachines(prev => 
+      prev.includes(machineId)
+        ? prev.filter(id => id !== machineId)
+        : [...prev, machineId]
+    );
+  };
+
+  const toggleAllMachines = () => {
+    const allMachineIds = companyConfig?.machines?.map(m => m.id) || [];
+    if (reprocessMachines.length === allMachineIds.length) {
+      setReprocessMachines([]);
+    } else {
+      setReprocessMachines(allMachineIds);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat("en-US", {
@@ -250,12 +331,8 @@ export default function JSONResultsAll({ userFilter, scanTypeFilter: initialScan
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">All Results</h1>
-          <p className="text-gray-600 mt-1">
-            View all processed CNC program files and their analysis results
-          </p>
           {results.length > 0 && results[0].processedAt && (
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-500">
               Data from: {formatDate(results[0].processedAt)}
             </p>
           )}
@@ -329,21 +406,17 @@ export default function JSONResultsAll({ userFilter, scanTypeFilter: initialScan
           )}
 
           {/* Date From */}
-          <Input
-            type="date"
+          <DatePicker
             value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
+            onChange={setDateFrom}
             placeholder="From Date"
-            className="text-sm"
           />
 
           {/* Date To */}
-          <Input
-            type="date"
+          <DatePicker
             value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
+            onChange={setDateTo}
             placeholder="To Date"
-            className="text-sm"
           />
 
           {/* Clear Filters */}
@@ -355,8 +428,8 @@ export default function JSONResultsAll({ userFilter, scanTypeFilter: initialScan
               setStatusFilter("all");
               setMachineFilter("all");
               setProgrammerFilter("all");
-              setDateFrom("");
-              setDateTo("");
+              setDateFrom(undefined);
+              setDateTo(undefined);
               setSearchTerm("");
             }}
           >
@@ -368,14 +441,29 @@ export default function JSONResultsAll({ userFilter, scanTypeFilter: initialScan
       {/* Results Table */}
       <Card>
         <CardHeader>
-          <CardTitle>
-            {userFilter ? `My ${initialScanTypeFilter === 'auto' ? 'Auto' : 'Manual'} Results` : 'Analysis Results'}
-          </CardTitle>
-          <CardDescription>
-            {userFilter && `Showing results for ${userFilter} • `}
-            {filteredResults.length} result
-            {filteredResults.length !== 1 ? "s" : ""} found
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>
+                {userFilter ? `My ${initialScanTypeFilter === 'auto' ? 'Auto' : 'Manual'} Results` : 'Analysis Results'}
+              </CardTitle>
+              <CardDescription>
+                {userFilter && `Showing results for ${userFilter} • `}
+                {filteredResults.length} result
+                {filteredResults.length !== 1 ? "s" : ""} found
+              </CardDescription>
+            </div>
+            {user?.role === 'admin' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowReprocessDialog(true)}
+                className="gap-2"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Force Reprocess
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {filteredResults.length === 0 ? (
@@ -614,6 +702,107 @@ export default function JSONResultsAll({ userFilter, scanTypeFilter: initialScan
           </Card>
         </div>
       )}
+
+      {/* Force Reprocess Dialog */}
+      <Dialog open={showReprocessDialog} onOpenChange={setShowReprocessDialog}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-950">
+          <DialogHeader>
+            <DialogTitle>Force Reprocess JSON Files</DialogTitle>
+            <DialogDescription>
+              Select date range and machines to reprocess JSON files. All files matching the criteria will be reanalyzed with current rules.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Date Range - Side by Side */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Start Date</Label>
+                <DatePicker
+                  value={reprocessDateFrom}
+                  onChange={setReprocessDateFrom}
+                  placeholder="Select start date"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>End Date</Label>
+                <DatePicker
+                  value={reprocessDateTo}
+                  onChange={setReprocessDateTo}
+                  placeholder="Select end date"
+                />
+              </div>
+            </div>
+
+            {/* Machine Selection - Checkbox Style */}
+            <div className="border-t pt-4">
+              <Label className="mb-2 block">Machines</Label>
+              <div className="grid grid-cols-2 gap-2 p-2 border rounded-md">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="machine-all"
+                    checked={reprocessMachines.length === (companyConfig?.machines?.length || 0) && reprocessMachines.length > 0}
+                    onChange={toggleAllMachines}
+                    className="rounded"
+                  />
+                  <label 
+                    htmlFor="machine-all"
+                    className="text-sm cursor-pointer font-medium"
+                  >
+                    All Machines
+                  </label>
+                </div>
+                {companyConfig?.machines?.map((machine) => (
+                  <div 
+                    key={machine.id}
+                    className="flex items-center space-x-2"
+                  >
+                    <input
+                      type="checkbox"
+                      id={`machine-${machine.id}`}
+                      checked={reprocessMachines.includes(machine.id)}
+                      onChange={() => toggleReprocessMachine(machine.id)}
+                      className="rounded"
+                    />
+                    <label 
+                      htmlFor={`machine-${machine.id}`}
+                      className="text-sm cursor-pointer"
+                    >
+                      {machine.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowReprocessDialog(false)}
+              disabled={isReprocessing}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleForceReprocess}
+              disabled={isReprocessing || !reprocessDateFrom || !reprocessDateTo}
+              className="gap-2"
+            >
+              {isReprocessing ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  Reprocessing...
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="h-4 w-4" />
+                  Start Reprocess
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

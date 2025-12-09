@@ -14,6 +14,7 @@ import RemainingMatrixTools from "./components/RemainingMatrixTools";
 import Settings from "./components/Settings";
 import AdminSettings from "./components/AdminSettings";
 import Sidebar from "./components/Sidebar";
+import BackendStatus from "./components/BackendStatus";
 import SetupWizard from "./components/SetupWizard_New";
 import ProtectedRoute, { AdminRoute } from "./components/ProtectedRoute";
 import { Toaster } from "./components/ui/sonner";
@@ -494,7 +495,11 @@ function AppContent() {
         <Sidebar
           user={legacyUser}
           currentView={currentView}
-          onViewChange={(view: string) => setCurrentView(view as AppView)}
+          onViewChange={(view: string) => {
+            console.log("🔄 App: View change requested:", view);
+            setCurrentView(view as AppView);
+            console.log("✅ App: View changed to:", view);
+          }}
           isOpen={isSidebarOpen}
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
           onLogout={logout}
@@ -504,7 +509,7 @@ function AppContent() {
         {/* Main Content with Role-based Access Control */}
         <div className="p-4 lg:p-6 w-full">
           {/* Page Title Header */}
-          <div className="mb-6">
+          <div className="mb-6 flex justify-between items-center">
             <h1 className="text-3xl font-bold text-foreground">
               {currentView === "dashboard" && "Dashboard"}
               {currentView === "all-auto-results" && "All Auto Results"}
@@ -531,6 +536,7 @@ function AppContent() {
               {currentView === "settings" && "Settings"}
               {currentView === "admin-settings" && "Admin Settings"}
             </h1>
+            <BackendStatus />
           </div>
 
           {currentView === "dashboard" && (
@@ -698,8 +704,11 @@ function AppContent() {
           )}
 
           {currentView === "admin-settings" && (
-            <AdminRoute>
-              <AdminSettings
+            <>
+              {console.log("🎯 App: Rendering admin-settings view")}
+              <AdminRoute>
+                {console.log("🔐 App: Inside AdminRoute wrapper")}
+                <AdminSettings
                 theme={theme}
                 fontSize={fontSize}
                 highContrast={highContrast}
@@ -716,7 +725,8 @@ function AppContent() {
                   localStorage.setItem("highContrast", enabled.toString());
                 }}
               />
-            </AdminRoute>
+              </AdminRoute>
+            </>
           )}
         </div>
         </main>

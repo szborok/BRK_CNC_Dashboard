@@ -89,19 +89,19 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* Mobile/Tablet overlay */}
       {isOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          className="xl:hidden fixed inset-0 bg-black/50 z-30"
           onClick={onToggle}
         />
       )}
 
-      {/* Mobile toggle button */}
+      {/* Mobile/Tablet toggle button */}
       <Button
         variant="outline"
         size="icon"
-        className="lg:hidden fixed top-4 left-4 z-50"
+        className="xl:hidden fixed top-4 left-4 z-50"
         onClick={onToggle}
       >
         {isOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -109,13 +109,19 @@ export default function Sidebar({
 
       {/* Sidebar */}
       <aside
+        style={{ 
+          backgroundColor: 'var(--sidebar, #e0e0e0)',
+          WebkitBackfaceVisibility: 'hidden',
+          backfaceVisibility: 'hidden'
+        }}
         className={`
-        fixed top-0 left-0 z-40 h-full bg-sidebar border-r border-sidebar-border
+        fixed top-0 left-0 z-40 h-screen max-h-screen border-r border-sidebar-border
         transition-all duration-300 ease-in-out
-        ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+        ${isOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0"}
         w-64
-        lg:relative lg:translate-x-0
-        flex flex-col
+        xl:relative xl:translate-x-0 xl:h-full
+        flex flex-col overflow-hidden
+        shadow-lg xl:shadow-none
       `}
       >
         {/* Header - Company Info */}
@@ -149,7 +155,7 @@ export default function Sidebar({
         <Separator className="bg-sidebar-border" />
 
         {/* Navigation */}
-        <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+        <div className="flex-1 p-4 space-y-4 overflow-y-auto min-h-0">
           {/* Dashboard */}
           <div>
             <Button
@@ -425,7 +431,7 @@ export default function Sidebar({
         </div>
 
         {/* User section */}
-        <div className="p-4 border-t border-sidebar-border">
+        <div className="p-4 border-t border-sidebar-border flex-shrink-0">
           {isOpen ? (
             <div className="space-y-3">
               <div className="flex items-center space-x-3">

@@ -325,11 +325,7 @@ const ToolManager: React.FC<ToolManagerProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{viewTitle}</h1>
-          <p className="text-muted-foreground">{viewDescription}</p>
-        </div>
+      <div className="flex items-center justify-end">
         <Button onClick={handleRefresh} disabled={isLoading}>
           <RefreshCw
             className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
