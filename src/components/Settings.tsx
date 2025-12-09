@@ -1,12 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Settings as SettingsIcon, Palette, Type, Monitor, Bell, Clock, Save } from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
+import { Palette, Monitor, Bell, Clock, Save } from "lucide-react";
+import { toast } from "sonner";
 
 interface SettingsProps {
   theme: "auto" | "light" | "dark";
@@ -25,12 +24,52 @@ export default function Settings({
   onFontSizeChange,
   onHighContrastChange,
 }: SettingsProps) {
-  const { user } = useAuth();
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState("30");
   const [notifications, setNotifications] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [compactView, setCompactView] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('userSettings');
+    if (savedSettings) {
+      try {
+        const settings = JSON.parse(savedSettings);
+        setAutoRefresh(settings.autoRefresh ?? true);
+        setRefreshInterval(settings.refreshInterval ?? "30");
+        setNotifications(settings.notifications ?? true);
+        setSoundEnabled(settings.soundEnabled ?? false);
+        setCompactView(settings.compactView ?? false);
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    }
+  }, []);
+
+  // Mark as changed when any setting updates
+  useEffect(() => {
+    setHasChanges(true);
+  }, [autoRefresh, refreshInterval, notifications, soundEnabled, compactView]);
+
+  const handleSaveSettings = () => {
+    try {
+      const settings = {
+        autoRefresh,
+        refreshInterval,
+        notifications,
+        soundEnabled,
+        compactView,
+      };
+      localStorage.setItem('userSettings', JSON.stringify(settings));
+      setHasChanges(false);
+      toast.success('Settings saved successfully');
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      toast.error('Failed to save settings');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -201,39 +240,14 @@ export default function Settings({
         </CardContent>
       </Card>
 
-      {/* User Profile */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <SettingsIcon className="h-5 w-5" />
-            User Profile
-          </CardTitle>
-          <CardDescription>
-            Your account information
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Username</Label>
-            <Input value={user?.username || ""} disabled />
-          </div>
-          <div className="space-y-2">
-            <Label>Full Name</Label>
-            <Input value={user?.name || ""} disabled />
-          </div>
-          <div className="space-y-2">
-            <Label>Role</Label>
-            <Input value={user?.role || ""} disabled className="capitalize" />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Contact an administrator to update your profile information
-          </p>
-        </CardContent>
-      </Card>
-
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button size="lg" className="gap-2">
+        <Button 
+          size="lg" 
+          className="gap-2"
+          onClick={handleSaveSettings}
+          disabled={!hasChanges}
+        >
           <Save className="h-4 w-4" />
           Save Preferences
         </Button>

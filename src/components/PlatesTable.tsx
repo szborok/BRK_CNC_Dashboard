@@ -225,11 +225,12 @@ export default function PlatesTable({ user, filter }: PlatesTableProps) {
     let aValue: string | Date | number, bValue: string | Date | number;
 
     switch (sortBy) {
-      case "id":
+      case "id": {
         // Sort by plateNumber (numeric)
         const aNum = a.plateNumber || 0;
         const bNum = b.plateNumber || 0;
         return sortOrder === "asc" ? aNum - bNum : bNum - aNum;
+      }
       case "name":
         aValue = a.name || a.id;
         bValue = b.name || b.id;
@@ -254,7 +255,7 @@ export default function PlatesTable({ user, filter }: PlatesTableProps) {
     return 0;
   });
 
-  const getPageTitle = () => {
+  const _getPageTitle = () => {
     switch (filter) {
       case "new-health":
         return "New Plates";
@@ -435,9 +436,40 @@ export default function PlatesTable({ user, filter }: PlatesTableProps) {
           user={user}
           isOpen={!!selectedPlate}
           onClose={() => setSelectedPlate(null)}
-          onUpdate={(updatedPlate) => {
-            // In a real app, this would update the backend
-            setSelectedPlate(updatedPlate);
+          onUpdate={async (updatedPlate) => {
+            try {
+              // Update the backend
+              const response = await fetch(`http://localhost:3003/api/plates/${updatedPlate.id}`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  health: updatedPlate.health,
+                  occupancy: updatedPlate.occupancy,
+                  notes: updatedPlate.notes,
+                  lastWorkName: updatedPlate.lastWorkName,
+                  modifiedBy: updatedPlate.lastModifiedBy,
+                }),
+              });
+
+              if (!response.ok) {
+                throw new Error('Failed to update plate');
+              }
+
+              const backendPlate = await response.json();
+              
+              // Update local state with backend response
+              setSelectedPlate(backendPlate);
+              
+              // Refresh the plates list
+              await BackendDataLoader.fetchClampingPlateData();
+              
+            } catch (error) {
+              console.error('Failed to update plate:', error);
+              // Still update local state as fallback
+              setSelectedPlate(updatedPlate);
+            }
           }}
         />
       )}
