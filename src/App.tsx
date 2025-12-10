@@ -18,6 +18,11 @@ import BackendStatus from "./components/BackendStatus";
 import SetupWizard from "./components/SetupWizard_New";
 import ProtectedRoute, { AdminRoute } from "./components/ProtectedRoute";
 import { Toaster } from "./components/ui/sonner";
+// hyperMILL Config components
+import CurrentConfig from "./components/hypermill/CurrentConfig";
+import GlobalMacro from "./components/hypermill/GlobalMacro";
+import GlobalAutomation from "./components/hypermill/GlobalAutomation";
+import BackupReset from "./components/hypermill/BackupReset";
 
 // Enhanced Login Component - Clean and Simple
 function WorkingLoginPage() {
@@ -324,7 +329,12 @@ export type AppView =
   | "remaining-tools"
   | "non-matrix-tools"
   | "projects-by-tools"
-  | "tools-by-projects";
+  | "tools-by-projects"
+  // hyperMILL Config views
+  | "hypermill-current-config"
+  | "hypermill-global-macro"
+  | "hypermill-global-automation"
+  | "hypermill-backup-reset";
 
 // Legacy User interface for Sidebar compatibility
 interface LegacyUser {
@@ -700,6 +710,31 @@ function AppContent() {
                   localStorage.setItem("highContrast", enabled.toString());
                 }}
               />
+            </ProtectedRoute>
+          )}
+
+          {/* hyperMILL Config Views */}
+          {currentView === "hypermill-current-config" && (
+            <ProtectedRoute>
+              <CurrentConfig />
+            </ProtectedRoute>
+          )}
+
+          {currentView === "hypermill-global-macro" && (
+            <ProtectedRoute>
+              <GlobalMacro />
+            </ProtectedRoute>
+          )}
+
+          {currentView === "hypermill-global-automation" && (
+            <ProtectedRoute>
+              <GlobalAutomation />
+            </ProtectedRoute>
+          )}
+
+          {currentView === "hypermill-backup-reset" && (
+            <ProtectedRoute>
+              <BackupReset />
             </ProtectedRoute>
           )}
 

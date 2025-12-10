@@ -24,6 +24,10 @@ import {
   Archive,
   FolderOpen,
   Target,
+  Cog,
+  FileCode,
+  Workflow,
+  Database,
 } from "lucide-react";
 import { AppView } from "../App";
 import { useState } from "react";
@@ -77,6 +81,7 @@ export default function Sidebar({
     "analyzer",
     "plates",
     "tools",
+    "hypermill",
   ]);
 
   const toggleApp = (appId: string) => {
@@ -425,6 +430,85 @@ export default function Sidebar({
                     );
                   })}
                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* hyperMILL Config App */}
+          <div className="space-y-1">
+            <Button
+              variant="ghost"
+              className={`w-full justify-between ${
+                !isOpen && "lg:justify-center"
+              }`}
+              onClick={() => toggleApp("hypermill")}
+            >
+              <div className="flex items-center">
+                <Cog className="h-4 w-4" />
+                {isOpen && <span className="ml-3">hyperMILL Config</span>}
+              </div>
+              {isOpen &&
+                (expandedApps.includes("hypermill") ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                ))}
+            </Button>
+
+            {isOpen && expandedApps.includes("hypermill") && (
+              <div className="ml-6 space-y-1">
+                <Button
+                  variant={
+                    currentView === "hypermill-current-config" ? "default" : "ghost"
+                  }
+                  size="sm"
+                  className={`w-full justify-start ${
+                    currentView === "hypermill-current-config" ? "bg-primary text-primary-foreground" : ""
+                  }`}
+                  onClick={() => onViewChange("hypermill-current-config")}
+                >
+                  <Settings className="h-3 w-3 mr-2" />
+                  Current Config
+                </Button>
+                <Button
+                  variant={
+                    currentView === "hypermill-global-macro" ? "default" : "ghost"
+                  }
+                  size="sm"
+                  className={`w-full justify-start ${
+                    currentView === "hypermill-global-macro" ? "bg-primary text-primary-foreground" : ""
+                  }`}
+                  onClick={() => onViewChange("hypermill-global-macro")}
+                >
+                  <FileCode className="h-3 w-3 mr-2" />
+                  Global Macro
+                </Button>
+                <Button
+                  variant={
+                    currentView === "hypermill-global-automation" ? "default" : "ghost"
+                  }
+                  size="sm"
+                  className={`w-full justify-start ${
+                    currentView === "hypermill-global-automation" ? "bg-primary text-primary-foreground" : ""
+                  }`}
+                  onClick={() => onViewChange("hypermill-global-automation")}
+                >
+                  <Workflow className="h-3 w-3 mr-2" />
+                  Global Automation
+                </Button>
+                <Button
+                  variant={
+                    currentView === "hypermill-backup-reset" ? "default" : "ghost"
+                  }
+                  size="sm"
+                  className={`w-full justify-start ${
+                    currentView === "hypermill-backup-reset" ? "bg-primary text-primary-foreground" : ""
+                  }`}
+                  onClick={() => onViewChange("hypermill-backup-reset")}
+                >
+                  <Database className="h-3 w-3 mr-2" />
+                  Backup/Reset
+                </Button>
               </div>
             )}
           </div>
