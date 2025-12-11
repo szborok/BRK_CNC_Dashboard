@@ -17,54 +17,57 @@ import {
   FolderOpen
 } from "lucide-react";
 
-export default function GlobalMacro() {
+interface GlobalMacroProps {
+  scope?: "my" | "all";
+}
+
+export default function GlobalMacro({ scope = "all" }: GlobalMacroProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const isMyScripts = scope === "my";
 
   // Mock data - will be replaced with actual API calls
   const macroCategories = [
-    { id: "all", name: "All Macros", count: 127 },
-    { id: "toolpath", name: "Toolpath", count: 45 },
-    { id: "setup", name: "Setup", count: 32 },
-    { id: "postprocess", name: "Post-Process", count: 28 },
-    { id: "utility", name: "Utility", count: 22 },
+    { id: "all", name: "All Scripts", count: isMyScripts ? 12 : 50 },
+    { id: "vbscript", name: "VB Scripts", count: isMyScripts ? 8 : 32 },
+    { id: "python", name: "Python Scripts", count: isMyScripts ? 4 : 18 },
   ];
 
   const macros = [
     {
-      name: "Auto_Tool_Setup",
-      description: "Automatically configures tool parameters based on material",
-      category: "setup",
+      name: "ToolpathValidation.vbs",
+      description: "VBScript for automated toolpath validation checks",
+      category: "vbscript",
       lastModified: "2025-12-08",
       author: "Admin",
       usageCount: 245,
-      path: "C:\\hyperMILL\\Macros\\Setup\\",
+      path: "[DefaultPath]\\VB SCRIPTS\\Validation\\",
     },
     {
-      name: "Batch_NC_Export",
-      description: "Export multiple NC programs with custom naming",
-      category: "postprocess",
+      name: "BatchExport.vbs",
+      description: "Export multiple NC programs with custom settings",
+      category: "vbscript",
       lastModified: "2025-12-10",
       author: "John Doe",
       usageCount: 189,
-      path: "C:\\hyperMILL\\Macros\\PostProcess\\",
+      path: "[DefaultPath]\\VB SCRIPTS\\Export\\",
     },
     {
-      name: "Rapid_Toolpath_Check",
-      description: "Quick validation of toolpath parameters",
-      category: "toolpath",
+      name: "nc_processor.py",
+      description: "Python script for advanced NC code post-processing",
+      category: "python",
       lastModified: "2025-12-07",
       author: "Admin",
       usageCount: 312,
-      path: "C:\\hyperMILL\\Macros\\Toolpath\\",
+      path: "[DefaultPath]\\PYTHON SCRIPTS\\PostProcessing\\",
     },
     {
-      name: "Stock_Calculator",
-      description: "Calculate required stock dimensions",
-      category: "utility",
+      name: "stock_optimizer.py",
+      description: "Calculate optimal stock dimensions and orientations",
+      category: "python",
       lastModified: "2025-12-05",
       author: "Jane Smith",
       usageCount: 156,
-      path: "C:\\hyperMILL\\Macros\\Utility\\",
+      path: "[DefaultPath]\\PYTHON SCRIPTS\\Utilities\\",
     },
   ];
 
@@ -73,9 +76,14 @@ export default function GlobalMacro() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Global Macros</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {isMyScripts ? "My Macros" : "All Macros"}
+          </h1>
           <p className="text-muted-foreground">
-            Manage hyperMILL macro scripts for automation and efficiency
+            {isMyScripts 
+              ? "Manage your personal VBScript and Python automation scripts"
+              : "View company-wide VBScript and Python automation scripts"
+            }
           </p>
         </div>
         <div className="flex gap-2">
@@ -123,9 +131,12 @@ export default function GlobalMacro() {
         <TabsContent value="all" className="space-y-4 mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Available Macros</CardTitle>
+              <CardTitle>{isMyScripts ? "My Scripts" : "Available Scripts"}</CardTitle>
               <CardDescription>
-                All macro scripts configured in your hyperMILL installation
+                {isMyScripts 
+                  ? "VBScript and Python files stored in your local user folder"
+                  : "Company-wide VBScript and Python scripts from the global repository"
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>

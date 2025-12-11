@@ -459,43 +459,71 @@ export default function Sidebar({
               <div className="ml-6 space-y-1">
                 <Button
                   variant={
-                    currentView === "hypermill-current-config" ? "default" : "ghost"
+                    currentView === "hypermill-my-macros" ? "default" : "ghost"
                   }
                   size="sm"
                   className={`w-full justify-start ${
-                    currentView === "hypermill-current-config" ? "bg-primary text-primary-foreground" : ""
+                    currentView === "hypermill-my-macros" ? "bg-primary text-primary-foreground" : ""
                   }`}
-                  onClick={() => onViewChange("hypermill-current-config")}
-                >
-                  <Settings className="h-3 w-3 mr-2" />
-                  Current Config
-                </Button>
-                <Button
-                  variant={
-                    currentView === "hypermill-global-macro" ? "default" : "ghost"
-                  }
-                  size="sm"
-                  className={`w-full justify-start ${
-                    currentView === "hypermill-global-macro" ? "bg-primary text-primary-foreground" : ""
-                  }`}
-                  onClick={() => onViewChange("hypermill-global-macro")}
+                  onClick={() => onViewChange("hypermill-my-macros")}
                 >
                   <FileCode className="h-3 w-3 mr-2" />
-                  Global Macro
+                  My Macros
                 </Button>
                 <Button
                   variant={
-                    currentView === "hypermill-global-automation" ? "default" : "ghost"
+                    currentView === "hypermill-my-automations" ? "default" : "ghost"
                   }
                   size="sm"
                   className={`w-full justify-start ${
-                    currentView === "hypermill-global-automation" ? "bg-primary text-primary-foreground" : ""
+                    currentView === "hypermill-my-automations" ? "bg-primary text-primary-foreground" : ""
                   }`}
-                  onClick={() => onViewChange("hypermill-global-automation")}
+                  onClick={() => onViewChange("hypermill-my-automations")}
                 >
                   <Workflow className="h-3 w-3 mr-2" />
-                  Global Automation
+                  My Automations
                 </Button>
+                <Button
+                  variant={
+                    currentView === "hypermill-all-macros" ? "default" : "ghost"
+                  }
+                  size="sm"
+                  className={`w-full justify-start ${
+                    currentView === "hypermill-all-macros" ? "bg-primary text-primary-foreground" : ""
+                  }`}
+                  onClick={() => onViewChange("hypermill-all-macros")}
+                >
+                  <FileCode className="h-3 w-3 mr-2" />
+                  All Macros
+                </Button>
+                <Button
+                  variant={
+                    currentView === "hypermill-all-automations" ? "default" : "ghost"
+                  }
+                  size="sm"
+                  className={`w-full justify-start ${
+                    currentView === "hypermill-all-automations" ? "bg-primary text-primary-foreground" : ""
+                  }`}
+                  onClick={() => onViewChange("hypermill-all-automations")}
+                >
+                  <Workflow className="h-3 w-3 mr-2" />
+                  All Automations
+                </Button>
+                {user?.role === "admin" && (
+                  <Button
+                    variant={
+                      currentView === "hypermill-global-settings" ? "default" : "ghost"
+                    }
+                    size="sm"
+                    className={`w-full justify-start ${
+                      currentView === "hypermill-global-settings" ? "bg-primary text-primary-foreground" : ""
+                    }`}
+                    onClick={() => onViewChange("hypermill-global-settings")}
+                  >
+                    <Settings className="h-3 w-3 mr-2" />
+                    Global Settings
+                  </Button>
+                )}
                 <Button
                   variant={
                     currentView === "hypermill-backup-reset" ? "default" : "ghost"

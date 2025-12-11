@@ -3,8 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
-import { Switch } from "../ui/switch";
-import { Label } from "../ui/label";
 import { 
   Workflow, 
   Plus, 
@@ -13,76 +11,68 @@ import {
   Trash2, 
   Download, 
   Upload,
-  Play,
-  Settings,
-  FolderOpen,
-  Clock,
-  CheckCircle2
+  FolderOpen
 } from "lucide-react";
 
-export default function GlobalAutomation() {
+interface GlobalAutomationProps {
+  scope?: "my" | "all";
+}
+
+export default function GlobalAutomation({ scope = "all" }: GlobalAutomationProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const isMyAutomations = scope === "my";
 
   // Mock data - will be replaced with actual API calls
   const automationScripts = [
     {
-      name: "Auto NC Generation",
-      description: "Automatically generates NC code when job is approved",
-      enabled: true,
-      trigger: "Job Approval",
-      lastRun: "2025-12-10 09:15:00",
-      runCount: 1247,
-      status: "running",
-      path: "C:\\hyperMILL\\AutomationCenter\\Scripts\\",
+      name: "Auto_NC_Generation.hma",
+      description: "AUTOMATION Center script for NC code generation workflow",
+      lastModified: "2025-12-09",
+      author: "Admin",
+      size: "45 KB",
+      path: "[DefaultPath]\\variants\\NC_Generation\\",
     },
     {
-      name: "Tool List Export",
-      description: "Exports tool lists to Excel after toolpath calculation",
-      enabled: true,
-      trigger: "Toolpath Complete",
-      lastRun: "2025-12-10 08:45:00",
-      runCount: 892,
-      status: "running",
-      path: "C:\\hyperMILL\\AutomationCenter\\Scripts\\",
+      name: "Tool_List_Export.hma",
+      description: "Export tool lists with custom formatting after calculation",
+      lastModified: "2025-12-10",
+      author: "John Doe",
+      size: "32 KB",
+      path: "[DefaultPath]\\variants\\Export\\",
     },
     {
-      name: "Backup Project Files",
-      description: "Creates backup of project files at end of day",
-      enabled: true,
-      trigger: "Scheduled (Daily)",
-      lastRun: "2025-12-09 18:00:00",
-      runCount: 365,
-      status: "idle",
-      path: "C:\\hyperMILL\\AutomationCenter\\Scripts\\",
+      name: "Daily_Backup.hma",
+      description: "Automated project backup to network location",
+      lastModified: "2025-12-08",
+      author: "Admin",
+      size: "28 KB",
+      path: "[DefaultPath]\\variants\\Maintenance\\",
     },
     {
-      name: "Stock Collision Check",
-      description: "Validates stock dimensions before calculation",
-      enabled: false,
-      trigger: "Before Calculation",
-      lastRun: "2025-12-08 14:20:00",
-      runCount: 543,
-      status: "disabled",
-      path: "C:\\hyperMILL\\AutomationCenter\\Scripts\\",
+      name: "Stock_Validation.hma",
+      description: "Validates stock parameters before toolpath calculation",
+      lastModified: "2025-12-07",
+      author: "Jane Smith",
+      size: "38 KB",
+      path: "[DefaultPath]\\variants\\Validation\\",
     },
   ];
 
-  const triggers = [
-    { name: "Job Approval", count: 3 },
-    { name: "Toolpath Complete", count: 5 },
-    { name: "Before Calculation", count: 2 },
-    { name: "After Simulation", count: 1 },
-    { name: "Scheduled", count: 4 },
-  ];
+
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Global Automation</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {isMyAutomations ? "My Automations" : "All Automations"}
+          </h1>
           <p className="text-muted-foreground">
-            Manage Automation Center scripts and workflows
+            {isMyAutomations 
+              ? "Manage your personal AUTOMATION Center scripts (.hma files)"
+              : "View company-wide AUTOMATION Center scripts and workflows"
+            }
           </p>
         </div>
         <div className="flex gap-2">
@@ -101,38 +91,38 @@ export default function GlobalAutomation() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Active Scripts</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Scripts</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {automationScripts.filter(s => s.enabled).length}
+              {automationScripts.length}
             </div>
             <p className="text-xs text-muted-foreground">
-              {automationScripts.length} total configured
+              .hma automation files
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Executions</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Size</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {automationScripts.reduce((acc, s) => acc + s.runCount, 0).toLocaleString()}
+              {(automationScripts.length * 35).toFixed(0)} KB
             </div>
             <p className="text-xs text-muted-foreground">
-              Across all automation scripts
+              Combined script file size
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Trigger Types</CardTitle>
+            <CardTitle className="text-sm font-medium">Last Modified</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{triggers.length}</div>
+            <div className="text-2xl font-bold">Today</div>
             <p className="text-xs text-muted-foreground">
-              Different automation triggers
+              Most recent update
             </p>
           </CardContent>
         </Card>
@@ -171,58 +161,25 @@ export default function GlobalAutomation() {
                 className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
               >
                 <div className="flex items-center gap-4 flex-1">
-                  <div className={`p-2 rounded-lg ${
-                    script.enabled ? 'bg-green-500/10' : 'bg-gray-500/10'
-                  }`}>
-                    <Workflow className={`h-5 w-5 ${
-                      script.enabled ? 'text-green-500' : 'text-gray-500'
-                    }`} />
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Workflow className="h-5 w-5 text-primary" />
                   </div>
                   <div className="space-y-1 flex-1">
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold">{script.name}</h3>
-                      {script.status === "running" && (
-                        <Badge variant="default" className="bg-green-500">
-                          <CheckCircle2 className="h-3 w-3 mr-1" />
-                          Running
-                        </Badge>
-                      )}
-                      {script.status === "idle" && (
-                        <Badge variant="secondary">
-                          <Clock className="h-3 w-3 mr-1" />
-                          Idle
-                        </Badge>
-                      )}
-                      {script.status === "disabled" && (
-                        <Badge variant="outline">Disabled</Badge>
-                      )}
+                      <Badge variant="outline">.hma</Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">{script.description}</p>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>Trigger: {script.trigger}</span>
+                      <span>Modified: {script.lastModified}</span>
                       <span>•</span>
-                      <span>Last run: {script.lastRun}</span>
+                      <span>By: {script.author}</span>
                       <span>•</span>
-                      <span>Executions: {script.runCount}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        checked={script.enabled}
-                        onCheckedChange={() => {}}
-                      />
-                      <Label className="text-sm">{script.enabled ? 'Enabled' : 'Disabled'}</Label>
+                      <span>Size: {script.size}</span>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 ml-4">
-                  <Button variant="ghost" size="sm">
-                    <Play className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <Settings className="h-4 w-4" />
-                  </Button>
                   <Button variant="ghost" size="sm">
                     <Download className="h-4 w-4" />
                   </Button>

@@ -7,19 +7,23 @@ export default function CurrentConfig() {
   // Mock data - will be replaced with actual API calls
   const configStatus = {
     lastSync: "2025-12-10 08:30:15",
-    version: "2024.2",
+    version: "34.0",
     isActive: true,
-    configPath: "C:\\hyperMILL\\Config",
+    configPath: "[AUTOMATION Center Default Path]",
+    localPath: "C:\\Users\\Public\\Documents\\OPEN MIND\\USERS\\[Username]\\AutomationCenter",
   };
 
   const configItems = [
-    { name: "Machine Definitions", count: 12, status: "synced", lastModified: "2025-12-09" },
-    { name: "Tool Libraries", count: 245, status: "synced", lastModified: "2025-12-10" },
-    { name: "Material Databases", count: 38, status: "synced", lastModified: "2025-12-08" },
-    { name: "Post Processors", count: 8, status: "synced", lastModified: "2025-12-07" },
-    { name: "Templates", count: 54, status: "synced", lastModified: "2025-12-10" },
-    { name: "Macros", count: 127, status: "warning", lastModified: "2025-11-28" },
-    { name: "Automation Scripts", count: 23, status: "synced", lastModified: "2025-12-09" },
+    { name: "Scripts (variants)", count: 45, status: "synced", lastModified: "2025-12-09" },
+    { name: "VB Scripts", count: 32, status: "synced", lastModified: "2025-12-10" },
+    { name: "Python Scripts", count: 18, status: "synced", lastModified: "2025-12-08" },
+    { name: "Components", count: 67, status: "synced", lastModified: "2025-12-07" },
+    { name: "Fixtures (CLAMPS)", count: 128, status: "synced", lastModified: "2025-12-10" },
+    { name: "Stock Definitions", count: 42, status: "warning", lastModified: "2025-11-28" },
+    { name: "Reports (XSL)", count: 15, status: "synced", lastModified: "2025-12-09" },
+    { name: "CAD Library", count: 234, status: "synced", lastModified: "2025-12-05" },
+    { name: "Feature Files", count: 89, status: "synced", lastModified: "2025-12-08" },
+    { name: "Database Files", count: 4, status: "synced", lastModified: "2025-12-10" },
   ];
 
   return (
@@ -27,9 +31,9 @@ export default function CurrentConfig() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">hyperMILL Configuration</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Global Settings</h1>
           <p className="text-muted-foreground">
-            View and manage your current hyperMILL configuration settings
+            Manage AUTOMATION Center global databases and configuration files
           </p>
         </div>
         <div className="flex gap-2">
@@ -55,7 +59,7 @@ export default function CurrentConfig() {
             <Settings className="h-5 w-5" />
             Configuration Status
           </CardTitle>
-          <CardDescription>Current hyperMILL configuration overview</CardDescription>
+          <CardDescription>AUTOMATION Center database files and global settings</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

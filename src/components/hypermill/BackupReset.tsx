@@ -25,7 +25,7 @@ export default function BackupReset() {
       date: "2025-12-10 09:30:00",
       type: "Automatic",
       size: "2.4 GB",
-      includes: ["Configs", "Macros", "Automation", "Templates"],
+      includes: ["variants (Scripts)", "VB SCRIPTS", "PYTHON SCRIPTS", "DATABASE", "COMPONENTS", "CLAMPS"],
       status: "completed",
     },
     {
@@ -33,7 +33,7 @@ export default function BackupReset() {
       date: "2025-12-09 18:30:00",
       type: "Scheduled",
       size: "2.3 GB",
-      includes: ["Configs", "Macros", "Automation"],
+      includes: ["variants (Scripts)", "VB SCRIPTS", "PYTHON SCRIPTS", "DATABASE"],
       status: "completed",
     },
     {
@@ -41,7 +41,7 @@ export default function BackupReset() {
       date: "2025-12-08 12:00:00",
       type: "Manual",
       size: "2.4 GB",
-      includes: ["Configs", "Macros", "Automation", "Templates", "Tool Libraries"],
+      includes: ["variants", "VB SCRIPTS", "PYTHON SCRIPTS", "DATABASE", "COMPONENTS", "CLAMPS", "STOCKS", "REPORTS", "LIBRARY"],
       status: "completed",
     },
   ];
@@ -85,7 +85,7 @@ export default function BackupReset() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Backup & Reset</h1>
           <p className="text-muted-foreground">
-            Manage configuration backups and system reset options
+            Manage AUTOMATION Center backups and system reset options
           </p>
         </div>
         <div className="flex gap-2">

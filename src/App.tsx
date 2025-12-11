@@ -331,9 +331,11 @@ export type AppView =
   | "projects-by-tools"
   | "tools-by-projects"
   // hyperMILL Config views
-  | "hypermill-current-config"
-  | "hypermill-global-macro"
-  | "hypermill-global-automation"
+  | "hypermill-my-macros"
+  | "hypermill-my-automations"
+  | "hypermill-all-macros"
+  | "hypermill-all-automations"
+  | "hypermill-global-settings"
   | "hypermill-backup-reset";
 
 // Legacy User interface for Sidebar compatibility
@@ -714,22 +716,34 @@ function AppContent() {
           )}
 
           {/* hyperMILL Config Views */}
-          {currentView === "hypermill-current-config" && (
+          {currentView === "hypermill-my-macros" && (
             <ProtectedRoute>
+              <GlobalMacro scope="my" />
+            </ProtectedRoute>
+          )}
+
+          {currentView === "hypermill-my-automations" && (
+            <ProtectedRoute>
+              <GlobalAutomation scope="my" />
+            </ProtectedRoute>
+          )}
+
+          {currentView === "hypermill-all-macros" && (
+            <ProtectedRoute>
+              <GlobalMacro scope="all" />
+            </ProtectedRoute>
+          )}
+
+          {currentView === "hypermill-all-automations" && (
+            <ProtectedRoute>
+              <GlobalAutomation scope="all" />
+            </ProtectedRoute>
+          )}
+
+          {currentView === "hypermill-global-settings" && (
+            <AdminRoute>
               <CurrentConfig />
-            </ProtectedRoute>
-          )}
-
-          {currentView === "hypermill-global-macro" && (
-            <ProtectedRoute>
-              <GlobalMacro />
-            </ProtectedRoute>
-          )}
-
-          {currentView === "hypermill-global-automation" && (
-            <ProtectedRoute>
-              <GlobalAutomation />
-            </ProtectedRoute>
+            </AdminRoute>
           )}
 
           {currentView === "hypermill-backup-reset" && (

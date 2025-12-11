@@ -1,47 +1,68 @@
 # hyperMILL Configuration Management - Frontend Implementation
 
 ## Overview
-This frontend implementation manages hyperMILL CAM software configurations, including macros, automation scripts, and system settings.
+This frontend implementation manages hyperMILL CAM software AUTOMATION Center configurations, including automation scripts, macros, and workflow management.
 
-## hyperMILL File Structure
+## hyperMILL AUTOMATION Center File Structure
 
-### Configuration Files
-hyperMILL typically stores configuration data in several locations:
+Based on hyperMILL v34.0 official documentation, the AUTOMATION Center uses a structured folder hierarchy for organizing scripts and related data.
 
-**Main Configuration Directory**: `C:\hyperMILL\Config\`
-- Machine definitions (.cfg)
-- Tool libraries (.tdb, .xml)
-- Material databases (.mdb)
-- Post processors (.ppr)
-- Templates (.hmt)
-- User preferences (.ini)
+### Default AUTOMATION Center Folder Paths
 
-**Macro Directory**: `C:\hyperMILL\Macros\`
-- Setup macros (.hmm)
-- Toolpath macros (.hmm)
-- Post-process macros (.hmm)
-- Utility scripts (.hmm, .vbs)
-- Organized by category folders
+**Company-wide Default Path** (typically on server):
+Set under: `hyperMILL → Setup → Settings → Application → Default paths → AUTOMATION Center`
 
-**Automation Center**: `C:\hyperMILL\AutomationCenter\`
-- Automation scripts (.hma, .xml)
-- Workflow definitions (.hma)
-- Event triggers configuration
-- Scheduled tasks
-- Job templates
+Main folders structure:
+```
+[AUTOMATION Center Default Path]\
+├── Apps\                  - Scripts provided by OPEN MIND or custom scripts
+├── CLAMPS\                - Fixtures organized by fixture system (subfolders per machine)
+├── COMPONENTS\            - Component files for exported components/subcomponents
+├── DATABASE\              - Databases (Color_table.xml, MacroDB.db, ToolDB.db, Virtual_tool.vtx)
+├── EXPORTED\              - Compressed scripts for data exchange/backup
+├── FEATURE\               - Exported feature files
+├── LIBRARY\               - CAD data categories with CAD model data
+├── MULTIOFFSET\           - .cfg files for milling area multiple allowances
+├── REPORTS\               - *.xsl report layouts
+├── STOCKS\                - *.cfg stock definition files (subfolders per category)
+├── variants\              - Global script data (subfolders per script)
+├── VB SCRIPTS\            - VBScript files (categorized in subfolders)
+└── PYTHON SCRIPTS\        - Python script files (categorized in subfolders)
+```
 
-### Typical File Locations
-1. **Global Settings**: 
-   - `%APPDATA%\OPEN MIND\hyperMILL\`
-   - User-specific preferences and UI settings
+**Local User Path**:
+`C:\Users\Public\Documents\OPEN MIND\USERS\[Username]\AutomationCenter\`
+- `variants\` - Local storage for scripts (synced from global path on startup)
 
-2. **Shared Resources**:
-   - `%PUBLIC%\Documents\OPEN MIND\hyperMILL\`
-   - Shared macros and templates across users
+**User-specific Preferences**:
+`%APPDATA%\OPEN MIND\hyperMILL\` - User-specific settings and preferences
 
-3. **Installation Directory**:
-   - `C:\Program Files\OPEN MIND\hyperMILL\`
-   - System defaults and base configurations
+### Script File Formats
+
+**Script Files**: Stored in `variants\` folders
+- `.hma` - Automation Center script definition files (XML-based)
+- `.xml` - Additional script configuration files
+- Each script has its own subfolder under `variants\`
+- Scripts are synchronized from global to local path on startup
+
+**Macro Files**: Stored in database or file system
+- Macros are part of hyperMILL core (not AUTOMATION Center specific)
+- Referenced by AUTOMATION Center scripts for execution
+
+**VBScript/Python Files**: For external automation
+- `.vbs` - VBScript files in categorized subfolders under `VB SCRIPTS\`
+- `.py` - Python script files in categorized subfolders under `PYTHON SCRIPTS\`
+- Called from AUTOMATION Center workflows using "Execute VBS script" or "Execute Python script" functions
+
+### Configuration and Data Files
+
+1. **Fixture Definitions**: `CLAMPS\[FixtureSystem]\` - Fixture components organized by system
+2. **Stock Definitions**: `STOCKS\[Category]\*.cfg` - Stock definition files by category
+3. **Database Files**: `DATABASE\`
+   - `Color_table.xml` - Color definitions
+   - `MacroDB.db` - Macro database
+   - `ToolDB.db` - Tool database
+   - `Virtual_tool.vtx` - Virtual tool definitions
 
 ## Frontend Features
 
@@ -57,42 +78,55 @@ hyperMILL typically stores configuration data in several locations:
   - Configuration export/import
 
 ### 2. Global Macro View
-- **Purpose**: Manage macro scripts
+- **Purpose**: Manage VBScript and Python automation scripts
 - **Features**:
-  - Browse macro library
-  - Category-based organization (Setup, Toolpath, Post-Process, Utility)
-  - Search and filter macros
-  - View macro details and usage statistics
-  - Import/export macros
-  - Execute macros directly
-  - Edit macro properties
+  - Browse script library in categorized folders
+  - Category-based organization (VB SCRIPTS and PYTHON SCRIPTS with subfolders)
+  - Search and filter scripts by name/path
+  - View script details and execution count
+  - Copy script path for reference
+  - Download/upload scripts
+  - Edit button (opens external editor)
+  - Delete scripts with confirmation
 
 ### 3. Global Automation View
-- **Purpose**: Manage Automation Center workflows
+- **Purpose**: Manage AUTOMATION Center scripts (`.hma` files)
 - **Features**:
-  - List automation scripts
-  - Enable/disable automation
-  - View execution statistics
-  - Trigger configuration
-  - Schedule automation tasks
-  - Script execution history
-  - Event-based triggers:
-    - Job Approval
-    - Toolpath Complete
-    - Before Calculation
-    - After Simulation
-    - Scheduled (Time-based)
+  - List automation scripts from `variants\` folders
+  - Enable/disable scripts for automatic execution
+  - View execution statistics and last run
+  - Script management:
+    - Create new script
+    - Duplicate existing script
+    - Rename script (creates new script)
+    - Delete script with confirmation
+  - Import/export scripts (.hma compressed format)
+  - Search and filter script list
+  - Add scripts to toolbar/menu
+  - Configure company-wide vs user-specific toolbars
+  - Runtime vs Advanced license features
+  - Execute scripts manually or via server controller
 
 ### 4. Backup/Reset View
-- **Purpose**: Configuration backup and restoration
+- **Purpose**: AUTOMATION Center data backup and restoration
 - **Features**:
-  - Create manual backups
-  - Automated backup configuration
+  - Backup entire AUTOMATION Center folder structure
+  - Manual backup creation with compression
+  - Backup includes:
+    - All script files from `variants\`
+    - Database files (Color_table.xml, MacroDB.db, ToolDB.db, Virtual_tool.vtx)
+    - Component files from `COMPONENTS\`
+    - Fixture definitions from `CLAMPS\`
+    - Stock definitions from `STOCKS\`
+    - VB Scripts and Python Scripts
+    - Report layouts from `REPORTS\`
   - Backup history with restore points
-  - Download backup files
-  - Import external backups
-  - Factory reset option
-  - Backup retention settings
+  - Download backup archives (.zip)
+  - Import/restore from backup files
+  - Selective restore (choose specific folders)
+  - Factory reset (restore to installation defaults)
+  - Backup retention policy settings
+  - Automated backup scheduling
 
 ## User vs Admin Differences
 
